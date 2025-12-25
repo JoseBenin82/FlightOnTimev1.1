@@ -1,0 +1,93 @@
+# ============================================================================
+# DOCKER COMPOSE - FLIGHTONTIME
+# Orquestación de servicios: Backend, ML Service y Frontend
+# ============================================================================
+
+services:
+  # ==========================================================================
+  # SERVICIO ML (Python + FastAPI)
+  # ==========================================================================
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: flightontime-ml
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./ml-service:/app
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - flightontime-network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # BACKEND (Java 17 + Spring Boot)
+  # ==========================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: flightontime-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - ML_SERVICE_URL=http://ml-service:8001
+    depends_on:
+      ml-service:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - flightontime-network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # FRONTEND (Nginx)
+  # ==========================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: flightontime-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - flightontime-network
+    restart: unless-stopped
+
+# ============================================================================
+# REDES
+# ============================================================================
+networks:
+  flightontime-network:
+    driver: bridge
+    name: flightontime-network
+
+# ============================================================================
+# VOLÚMENES (Opcional para persistencia)
+# ============================================================================
+volumes:
+  ml-data:
+    name: flightontime-ml-data

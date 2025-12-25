@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Sistema empresarial de predicción de puntualidad de vuelos con integración meteorológica en tiempo real">
+    <title>FlightOnTime - Predicción de Puntualidad de Vuelos</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- ================================================================ -->
+    <!-- HEADER EMPRESARIAL -->
+    <!-- ================================================================ -->
+    <header class="header">
+        <div class="header-container">
+            <div class="logo-section">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M21 16V8C21 6.89543 20.1046 6 19 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18H19C20.1046 18 21 17.1046 21 16Z"
+                        stroke="currentColor" stroke-width="2" />
+                    <path d="M12 6V2M12 18V22M6 12H2M22 12H18" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" />
+                </svg>
+                <div>
+                    <h1 class="logo-title">FlightOnTime</h1>
+
+                </div>
+            </div>
+            <div class="header-status">
+                <div class="status-indicator" id="statusIndicator">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Sistema Operativo</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ================================================================ -->
+    <!-- CONTENEDOR PRINCIPAL -->
+    <!-- ================================================================ -->
+    <main class="main-container">
+        <!-- ============================================================ -->
+        <!-- SECCIÓN DE FORMULARIO -->
+        <!-- ============================================================ -->
+        <section class="form-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Predicción de Puntualidad</h2>
+                    <p class="card-description">Ingrese los datos del vuelo para obtener una predicción basada en ML y
+                        datos meteorológicos</p>
+                </div>
+
+                <form id="predictionForm" class="prediction-form">
+                    <!-- Aerolínea -->
+                    <div class="form-group">
+                        <label for="aerolinea" class="form-label">
+                            <svg class="label-icon" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" />
+                                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" />
+                                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" />
+                            </svg>
+                            Aerolínea
+                        </label>
+                        <select id="aerolinea" name="aerolinea" class="form-select" required>
+                            <option value="">Seleccione una aerolínea</option>
+                            <option value="LATAM">LATAM Airlines</option>
+                            <option value="GOL">GOL Linhas Aéreas</option>
+                            <option value="AZUL">Azul Brazilian Airlines</option>
+                            <option value="AVIANCA">Avianca</option>
+                            <option value="COPA">Copa Airlines</option>
+                            <option value="AMERICAN">American Airlines</option>
+                            <option value="UNITED">United Airlines</option>
+                            <option value="DELTA">Delta Air Lines</option>
+                        </select>
+                    </div>
+
+                    <!-- Aeropuerto de Origen -->
+                    <div class="form-group">
+                        <label for="origen" class="form-label">
+                            <svg class="label-icon" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2L3 7V11C3 16.55 7.84 21.74 12 23C16.16 21.74 21 16.55 21 11V7L12 2Z"
+                                    stroke="currentColor" stroke-width="2" />
+                            </svg>
+                            Aeropuerto de Origen
+                        </label>
+                        <select id="origen" name="origen" class="form-select" required>
+                            <option value="">Seleccione origen</option>
+                            <optgroup label="Brasil">
+                                <option value="GRU">GRU - São Paulo-Guarulhos</option>
+                                <option value="GIG">GIG - Rio de Janeiro-Galeão</option>
+                                <option value="BSB">BSB - Brasília</option>
+                                <option value="CGH">CGH - São Paulo-Congonhas</option>
+                                <option value="SSA">SSA - Salvador</option>
+                                <option value="CNF">CNF - Belo Horizonte</option>
+                                <option value="REC">REC - Recife</option>
+                                <option value="FOR">FOR - Fortaleza</option>
+                                <option value="POA">POA - Porto Alegre</option>
+                                <option value="CWB">CWB - Curitiba</option>
+                            </optgroup>
+                            <optgroup label="Estados Unidos">
+                                <option value="JFK">JFK - New York</option>
+                                <option value="LAX">LAX - Los Angeles</option>
+                                <option value="ORD">ORD - Chicago</option>
+                                <option value="MIA">MIA - Miami</option>
+                                <option value="ATL">ATL - Atlanta</option>
+                                <option value="DFW">DFW - Dallas</option>
+                                <option value="SFO">SFO - San Francisco</option>
+                            </optgroup>
+                            <optgroup label="México">
+                                <option value="MEX">MEX - Ciudad de México</option>
+                                <option value="CUN">CUN - Cancún</option>
+                                <option value="GDL">GDL - Guadalajara</option>
+                                <option value="MTY">MTY - Monterrey</option>
+                            </optgroup>
+                            <optgroup label="Europa">
+                                <option value="LHR">LHR - London</option>
+                                <option value="CDG">CDG - Paris</option>
+                                <option value="FRA">FRA - Frankfurt</option>
+                                <option value="MAD">MAD - Madrid</option>
+                                <option value="BCN">BCN - Barcelona</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <!-- Aeropuerto de Destino -->
+                    <div class="form-group">
+                        <label for="destino" class="form-label">
+                            <svg class="label-icon" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2L3 7V11C3 16.55 7.84 21.74 12 23C16.16 21.74 21 16.55 21 11V7L12 2Z"
+                                    stroke="currentColor" stroke-width="2" />
+                                <circle cx="12" cy="11" r="3" stroke="currentColor" stroke-width="2" />
+                            </svg>
+                            Aeropuerto de Destino
+                        </label>
+                        <select id="destino" name="destino" class="form-select" required>
+                            <option value="">Seleccione destino</option>
+                            <optgroup label="Brasil">
+                                <option value="GRU">GRU - São Paulo-Guarulhos</option>
+                                <option value="GIG">GIG - Rio de Janeiro-Galeão</option>
+                                <option value="BSB">BSB - Brasília</option>
+                                <option value="CGH">CGH - São Paulo-Congonhas</option>
+                                <option value="SSA">SSA - Salvador</option>
+                                <option value="CNF">CNF - Belo Horizonte</option>
+                                <option value="REC">REC - Recife</option>
+                                <option value="FOR">FOR - Fortaleza</option>
+                                <option value="POA">POA - Porto Alegre</option>
+                                <option value="CWB">CWB - Curitiba</option>
+                            </optgroup>
+                            <optgroup label="Estados Unidos">
+                                <option value="JFK">JFK - New York</option>
+                                <option value="LAX">LAX - Los Angeles</option>
+                                <option value="ORD">ORD - Chicago</option>
+                                <option value="MIA">MIA - Miami</option>
+                                <option value="ATL">ATL - Atlanta</option>
+                                <option value="DFW">DFW - Dallas</option>
+                                <option value="SFO">SFO - San Francisco</option>
+                            </optgroup>
+                            <optgroup label="México">
+                                <option value="MEX">MEX - Ciudad de México</option>
+                                <option value="CUN">CUN - Cancún</option>
+                                <option value="GDL">GDL - Guadalajara</option>
+                                <option value="MTY">MTY - Monterrey</option>
+                            </optgroup>
+                            <optgroup label="Europa">
+                                <option value="LHR">LHR - London</option>
+                                <option value="CDG">CDG - Paris</option>
+                                <option value="FRA">FRA - Frankfurt</option>
+                                <option value="MAD">MAD - Madrid</option>
+                                <option value="BCN">BCN - Barcelona</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <!-- Fecha de Partida -->
+                    <div class="form-group">
+                        <label for="fechaPartida" class="form-label">
+                            <svg class="label-icon" viewBox="0 0 24 24" fill="none">
+                                <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor"
+                                    stroke-width="2" />
+                                <path d="M16 2V6M8 2V6M3 10H21" stroke="currentColor" stroke-width="2" />
+                            </svg>
+                            Fecha y Hora de Partida
+                        </label>
+                        <input type="datetime-local" id="fechaPartida" name="fechaPartida" class="form-input">
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none">
+                                <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" />
+                                <path
+                                    d="M21 12V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H16"
+                                    stroke="currentColor" stroke-width="2" />
+                            </svg>
+                            <span id="btnText">Obtener Predicción</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="mockBtn">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" />
+                            </svg>
+                            Modo Demo (Mock)
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SECCIÓN DE RESULTADOS -->
+        <!-- ============================================================ -->
+        <section class="results-section" id="resultsSection" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Resultado de la Predicción</h2>
+                </div>
+
+                <!-- Predicción Principal -->
+                <div class="prediction-result" id="predictionResult">
+                    <div class="prediction-icon" id="predictionIcon">
+                        <!-- Icono dinámico -->
+                    </div>
+                    <div class="prediction-content">
+                        <h3 class="prediction-status" id="predictionStatus">Puntual</h3>
+                        <p class="prediction-subtitle" id="predictionSubtitle">El vuelo tiene alta probabilidad de
+                            despegar a tiempo</p>
+                    </div>
+                </div>
+
+                <!-- Métricas -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Probabilidad de Retraso</div>
+                        <div class="metric-value" id="metricProbability">0%</div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill" id="probabilityBar"></div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Confianza del Modelo</div>
+                        <div class="metric-value" id="metricConfidence">0%</div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill confidence" id="confidenceBar"></div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Distancia del Vuelo</div>
+                        <div class="metric-value" id="metricDistance">0 km</div>
+                    </div>
+                </div>
+
+                <!-- Clima -->
+                <div class="weather-section" id="weatherSection">
+                    <h4 class="section-subtitle">
+                        <svg class="subtitle-icon" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2" />
+                            <path
+                                d="M12 1V3M12 21V23M23 12H21M3 12H1M20.49 20.49L19.07 19.07M4.93 4.93L3.51 3.51M20.49 3.51L19.07 4.93M4.93 19.07L3.51 20.49"
+                                stroke="currentColor" stroke-width="2" />
+                        </svg>
+                        Clima Detectado en Origen
+                    </h4>
+                    <div class="weather-grid">
+                        <div class="weather-item">
+                            <span class="weather-label">Condición</span>
+                            <span class="weather-value" id="weatherCondition">-</span>
+                        </div>
+                        <div class="weather-item">
+                            <span class="weather-label">Temperatura</span>
+                            <span class="weather-value" id="weatherTemp">-</span>
+                        </div>
+                        <div class="weather-item">
+                            <span class="weather-label">Humedad</span>
+                            <span class="weather-value" id="weatherHumidity">-</span>
+                        </div>
+                        <div class="weather-item">
+                            <span class="weather-label">Viento</span>
+                            <span class="weather-value" id="weatherWind">-</span>
+                        </div>
+                        <div class="weather-item">
+                            <span class="weather-label">Visibilidad</span>
+                            <span class="weather-value" id="weatherVisibility">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metadata -->
+                <div class="metadata-section" id="metadataSection">
+                    <h4 class="section-subtitle">Información del Vuelo</h4>
+                    <div class="metadata-grid" id="metadataGrid">
+                        <!-- Dinámico -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ================================================================ -->
+    <!-- FOOTER -->
+    <!-- ================================================================ -->
+    <footer class="footer">
+        <p>&copy; 2025 FlightOnTime - Oracle Enterprise Partner | Sistema de Misión Crítica</p>
+    </footer>
+
+    <!-- ================================================================ -->
+    <!-- LOADING OVERLAY -->
+    <!-- ================================================================ -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Analizando datos de vuelo y clima...</p>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
