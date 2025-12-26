@@ -200,7 +200,7 @@ async function sendPredictionRequest(data, useMock) {
         console.log('📥 Respuesta recibida:', result);
 
         // Verificar si hay error de validación
-        if (result.prediccion === 'Error' && result.metadata && result.metadata.error) {
+        if (result.prevision === 'Error' && result.metadata && result.metadata.error) {
             throw new Error(result.metadata.error);
         }
 
@@ -244,13 +244,13 @@ async function sendPredictionRequest(data, useMock) {
 // ============================================================================
 function displayResults(data) {
     // Determinar si es puntual o retrasado
-    const isPuntual = data.prediccion === 'Puntual';
+    const isPuntual = data.prevision === 'Puntual'; // API usa 'prevision'
 
     // Actualizar icono y estado
     elements.predictionIcon.innerHTML = isPuntual ? '✈️' : '⏰';
     elements.predictionIcon.className = `prediction-icon ${isPuntual ? 'success' : 'danger'}`;
 
-    elements.predictionStatus.textContent = data.prediccion;
+    elements.predictionStatus.textContent = data.prevision;
     elements.predictionStatus.className = `prediction-status ${isPuntual ? 'success' : 'danger'}`;
 
     elements.predictionSubtitle.textContent = isPuntual
@@ -258,7 +258,7 @@ function displayResults(data) {
         : 'El vuelo podría experimentar retrasos';
 
     // Actualizar métricas
-    const probabilityPercent = (data.probabilidad_retraso * 100).toFixed(1);
+    const probabilityPercent = (data.probabilidad * 100).toFixed(1); // API usa 'probabilidad'
     const confidencePercent = (data.confianza * 100).toFixed(1);
 
     elements.metricProbability.textContent = `${probabilityPercent}%`;
@@ -297,75 +297,92 @@ function displayResults(data) {
 function displayMetadata(metadata, isMock) {
     elements.metadataGrid.innerHTML = '';
 
-    // Agregar indicador de modo con información detallada
+    // 1. MODO DE OPERACIÓN (Full Width)
     if (isMock !== undefined) {
         const modo = metadata.modo || 'MOCK';
         let modoTexto = '';
-        let modoColor = '';
+        let type = 'info';
 
         if (modo === 'MOCK_CON_ML') {
             modoTexto = '🚀 Demo con Modelo ML Real';
-            modoColor = 'color: hsl(142, 71%, 45%);'; // Verde
+            type = 'success';
         } else if (modo === 'MOCK_FALLBACK') {
-            modoTexto = '🔧 Demo (Fallback - ML no disponible)';
-            modoColor = 'color: hsl(45, 100%, 51%);'; // Amarillo
+            modoTexto = '🔧 Demo (Fallback activo)';
+            type = 'warning';
         } else if (isMock) {
-            modoTexto = '🔧 Demo (Mock)';
-            modoColor = 'color: hsl(210, 100%, 56%);'; // Azul
+            modoTexto = '🔧 Demo (Datos simulados)';
+            type = 'info';
         } else {
-            modoTexto = '🚀 Predicción Real con ML';
-            modoColor = 'color: hsl(142, 71%, 45%);'; // Verde
+            modoTexto = '🚀 Predicción Real (Producción)';
+            type = 'success';
         }
 
-        addMetadataItem('Modo', modoTexto, modoColor);
+        addMetadataItem('Modo del Sistema', modoTexto, type, true);
     }
 
-    // Agregar nota si existe
+    // 2. NOTAS IMPORTANTES (Full Width)
     if (metadata.nota) {
-        addMetadataItem('Nota', metadata.nota, 'color: hsl(45, 100%, 51%);');
+        addMetadataItem('Nota del Sistema', metadata.nota, 'warning', true);
     }
 
-    // Agregar items de metadata
+    // 3. RESTO DE METADATA (Grid normal)
     const metadataMap = {
         'aerolinea': 'Aerolínea',
-        'ruta': 'Ruta',
+        'ruta': 'Ruta de Vuelo',
+        'distancia_km': 'Distancia',
         'origen_nombre': 'Origen',
         'destino_nombre': 'Destino',
-        'fecha_partida': 'Fecha de Partida',
-        'timestamp_prediccion': 'Timestamp'
+        'fecha_partida': 'Salida Programada',
+        'timestamp_prediccion': 'Cálculo Realizado'
     };
 
     for (const [key, label] of Object.entries(metadataMap)) {
         if (metadata[key]) {
             let value = metadata[key];
 
-            // Formatear timestamp si es necesario
+            // Formatear timestamp y fechas
             if (key.includes('timestamp') || key.includes('fecha')) {
                 try {
                     const date = new Date(value);
                     value = date.toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: 'short',
                         year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit'
                     });
-                } catch (e) {
-                    // Mantener valor original si falla el parseo
-                }
+                } catch (e) { /* ignore */ }
             }
 
-            addMetadataItem(label, value);
+            // Append unit to distance if missing (though usually comes as number in displayResults, here it's string in metadata?)
+            // Actually metadata might not have units, but let's just display as is.
+
+            addMetadataItem(label, value, 'default', false);
         }
     }
 }
 
-function addMetadataItem(label, value, customStyle = '') {
+function addMetadataItem(label, value, type = 'default', fullWidth = false) {
     const item = document.createElement('div');
-    item.className = 'metadata-item';
+
+    // Construir clases
+    let className = 'metadata-item';
+    if (fullWidth) className += ' full-width';
+    if (type !== 'default') className += ` ${type}`;
+
+    item.className = className;
+
+    // Icono opcional según tipo (solo para full width para darle más estilo)
+    let icon = '';
+    if (fullWidth) {
+        if (type === 'warning') icon = '⚠️ ';
+        if (type === 'success') icon = '✅ ';
+        if (type === 'info') icon = 'ℹ️ ';
+    }
+
     item.innerHTML = `
         <span class="metadata-label">${label}</span>
-        <span class="metadata-value" style="${customStyle}">${value}</span>
+        <span class="metadata-value">${icon}${value}</span>
     `;
     elements.metadataGrid.appendChild(item);
 }

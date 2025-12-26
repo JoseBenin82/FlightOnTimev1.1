@@ -583,6 +583,49 @@ body {
     color: var(--color-gray-800);
 }
 
+.metadata-item.full-width {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md);
+    background: var(--color-gray-50);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--color-gray-300);
+}
+
+.metadata-item.full-width .metadata-label {
+    margin-bottom: 0;
+    min-width: 100px;
+}
+
+.metadata-item.warning {
+    background: #FFFBEB; /* Amber 50 */
+    border-left-color: #F59E0B; /* Amber 500 */
+}
+
+.metadata-item.warning .metadata-value {
+    color: #92400E; /* Amber 800 - Readable on light bg */
+}
+
+.metadata-item.success {
+    background: #ECFDF5; /* Emerald 50 */
+    border-left-color: #10B981; /* Emerald 500 */
+}
+
+.metadata-item.success .metadata-value {
+    color: #065F46; /* Emerald 800 */
+}
+
+.metadata-item.info {
+    background: #EFF6FF; /* Blue 50 */
+    border-left-color: #3B82F6; /* Blue 500 */
+}
+
+.metadata-item.info .metadata-value {
+    color: #1E40AF; /* Blue 800 */
+}
+
 /* ============================================================================
    LOADING OVERLAY
    ============================================================================ */

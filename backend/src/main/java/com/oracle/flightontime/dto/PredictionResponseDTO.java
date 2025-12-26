@@ -23,15 +23,15 @@ import java.util.Map;
 public class PredictionResponseDTO {
 
     /**
-     * Predicción textual: "Puntual" o "Retrasado"
+     * Predicción textual: "Retrasado" o "Puntual" (0 o 1)
      */
-    @JsonProperty("prediccion")
+    @JsonProperty("prevision") // Requisito: usar "prevision"
     private String prediccion;
 
     /**
      * Probabilidad de retraso (0.0 a 1.0)
      */
-    @JsonProperty("probabilidad_retraso")
+    @JsonProperty("probabilidad") // Requisito: usar "probabilidad"
     private Double probabilidadRetraso;
 
     /**

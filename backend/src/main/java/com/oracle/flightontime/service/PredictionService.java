@@ -152,8 +152,9 @@ public class PredictionService {
             }
         }
 
-        // FALLBACK: Si el ML Service falla, usar valores por defecto
-        logger.info("📊 Generando respuesta mock con valores por defecto (fallback)");
+        // FALLBACK: Si el ML Service falla, generar predicción dinámica basada en
+        // heurísticas
+        logger.info("📊 Generando respuesta mock con predicción dinámica (fallback)");
 
         // Calcular distancia real usando GeoUtils
         Double distanciaKm = GeoUtils.calcularDistancia(request.getOrigen(), request.getDestino());
@@ -168,16 +169,64 @@ public class PredictionService {
         String origenNombre = GeoUtils.getAirportName(request.getOrigen());
         String destinoNombre = GeoUtils.getAirportName(request.getDestino());
 
-        // Clima por defecto
-        WeatherDataDTO climaDefault = WeatherDataDTO.builder()
-                .temperatura(22.5)
-                .humedad(65)
+        // Generar clima simulado con variación
+        Random random = new Random();
+        double temperatura = 15.0 + random.nextDouble() * 20.0; // 15-35°C
+        int humedad = 40 + random.nextInt(50); // 40-90%
+        double vientoVelocidad = 2.0 + random.nextDouble() * 15.0; // 2-17 m/s
+        int visibilidad = 5000 + random.nextInt(5000); // 5-10 km
+
+        WeatherDataDTO climaSimulado = WeatherDataDTO.builder()
+                .temperatura(Math.round(temperatura * 10.0) / 10.0)
+                .humedad(humedad)
                 .presion(1013)
-                .visibilidad(10000)
-                .vientoVelocidad(5.2)
-                .condicion("Clear")
-                .descripcion("cielo claro")
+                .visibilidad(visibilidad)
+                .vientoVelocidad(Math.round(vientoVelocidad * 10.0) / 10.0)
+                .condicion(humedad > 70 ? "Clouds" : "Clear")
+                .descripcion(humedad > 70 ? "nublado" : "cielo claro")
                 .build();
+
+        // CÁLCULO DINÁMICO DE PROBABILIDAD basado en heurísticas
+        double probabilidadRetraso = 0.0;
+
+        // Factor 1: Distancia (vuelos largos tienen más probabilidad de retraso)
+        if (distanciaKm > 5000) {
+            probabilidadRetraso += 0.20;
+        } else if (distanciaKm > 2000) {
+            probabilidadRetraso += 0.10;
+        } else {
+            probabilidadRetraso += 0.05;
+        }
+
+        // Factor 2: Clima (mal clima aumenta probabilidad)
+        if (visibilidad < 7000) {
+            probabilidadRetraso += 0.15;
+        }
+        if (vientoVelocidad > 12.0) {
+            probabilidadRetraso += 0.15;
+        }
+        if (temperatura < 5.0 || temperatura > 35.0) {
+            probabilidadRetraso += 0.10;
+        }
+        if (humedad > 80) {
+            probabilidadRetraso += 0.10;
+        }
+
+        // Factor 3: Agregar variación aleatoria pequeña para simular otros factores
+        probabilidadRetraso += (random.nextDouble() * 0.15 - 0.075); // ±7.5%
+
+        // Limitar entre 0.0 y 1.0
+        probabilidadRetraso = Math.max(0.0, Math.min(1.0, probabilidadRetraso));
+
+        // Determinar predicción binaria
+        String prediccion = probabilidadRetraso > 0.5 ? "Retrasado" : "Puntual";
+
+        // Calcular confianza (máxima probabilidad entre las dos clases)
+        double confianza = Math.max(probabilidadRetraso, 1.0 - probabilidadRetraso);
+
+        // Redondear a 4 decimales
+        probabilidadRetraso = Math.round(probabilidadRetraso * 10000.0) / 10000.0;
+        confianza = Math.round(confianza * 10000.0) / 10000.0;
 
         // Metadata
         Map<String, Object> metadata = new HashMap<>();
@@ -188,22 +237,24 @@ public class PredictionService {
         metadata.put("fecha_partida", request.getFechaPartida());
         metadata.put("timestamp_prediccion", LocalDateTime.now().toString());
         metadata.put("modo", "MOCK_FALLBACK");
-        metadata.put("nota", "ML Service no disponible, usando valores por defecto");
+        metadata.put("nota", "ML Service no disponible, usando predicción heurística dinámica");
 
-        // Respuesta fallback: Valores por defecto
+        // Respuesta fallback con valores DINÁMICOS
         PredictionResponseDTO response = PredictionResponseDTO.builder()
-                .prediccion("Puntual")
-                .probabilidadRetraso(0.15)
-                .confianza(0.85)
+                .prediccion(prediccion)
+                .probabilidadRetraso(probabilidadRetraso)
+                .confianza(confianza)
                 .distanciaKm(distanciaKm)
-                .climaOrigen(climaDefault)
+                .climaOrigen(climaSimulado)
                 .metadata(metadata)
                 .modoMock(true)
                 .build();
 
-        logger.info("✅ Predicción Mock Fallback: {} (Probabilidad retraso: {}%, Distancia: {} km)",
+        logger.info(
+                "✅ Predicción Mock Fallback DINÁMICA: {} (Probabilidad retraso: {:.2f}%, Confianza: {:.2f}%, Distancia: {} km)",
                 response.getPrediccion(),
                 response.getProbabilidadRetraso() * 100,
+                response.getConfianza() * 100,
                 distanciaKm);
 
         return response;

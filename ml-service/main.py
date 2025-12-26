@@ -103,8 +103,8 @@ class WeatherData(BaseModel):
 
 class PredictionResponse(BaseModel):
     """Respuesta completa de la predicción"""
-    prediccion: str  # "Puntual" o "Retrasado"
-    probabilidad_retraso: float
+    prevision: str  # "Puntual" o "Retrasado"
+    probabilidad: float
     confianza: float
     distancia_km: float
     clima_origen: WeatherData
@@ -449,8 +449,8 @@ async def predict_internal(request: PredictionRequest):
         # 5. CONSTRUCCIÓN DE RESPUESTA
         # ====================================================================
         response = PredictionResponse(
-            prediccion=prediccion_texto,
-            probabilidad_retraso=round(prob_retraso, 4),
+            prevision=prediccion_texto,
+            probabilidad=round(prob_retraso, 4),
             confianza=round(confianza, 4),
             distancia_km=distancia_km,
             clima_origen=clima_origen,
