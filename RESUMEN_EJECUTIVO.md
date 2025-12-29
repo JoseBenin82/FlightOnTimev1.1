@@ -80,7 +80,7 @@
   - Datos temporales (hora, día, mes)
   - Aerolínea y ruta
 - **Output**: 
-  - Predicción binaria (Puntual / Retrasado)
+  - Predicción binaria: **0** (Puntual) / **1** (Retrasado)
   - Probabilidad de retraso (0-100%)
   - Nivel de confianza del modelo
 

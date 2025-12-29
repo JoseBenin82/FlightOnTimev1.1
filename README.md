@@ -169,7 +169,7 @@ Realiza una predicción de puntualidad de vuelo.
 **Respuesta (JSON):**
 ```json
 {
-  "prediccion": "Puntual",
+  "prediccion": 0,
   "probabilidad_retraso": 0.15,
   "confianza": 0.85,
   "distancia_km": 7680.5,
@@ -193,6 +193,10 @@ Realiza una predicción de puntualidad de vuelo.
   "modo_mock": false
 }
 ```
+
+**Nota**: El campo `prediccion` devuelve valores numéricos:
+- `0` = Puntual
+- `1` = Retrasado
 
 #### `GET /api/health`
 

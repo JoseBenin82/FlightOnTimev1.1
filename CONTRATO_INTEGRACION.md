@@ -55,7 +55,7 @@ Content-Type: application/json
 **Response Body (200 OK)**:
 ```json
 {
-  "prediccion": "string",              // "Puntual" o "Retrasado"
+  "prediccion": integer,               // 0 = Puntual, 1 = Retrasado
   "probabilidad_retraso": number,      // 0.0 - 1.0
   "confianza": number,                 // 0.0 - 1.0
   "distancia_km": number,              // Distancia calculada en km
@@ -165,7 +165,7 @@ Content-Type: application/json
 **Response Body (200 OK)**:
 ```json
 {
-  "prediccion": "string",
+  "prediccion": integer,               // 0 = Puntual, 1 = Retrasado
   "probabilidad_retraso": number,
   "confianza": number,
   "distancia_km": number,
@@ -257,8 +257,9 @@ Content-Type: application/json
 
 ### 3.4 Predicción
 
-**Valores permitidos**: `"Puntual"` o `"Retrasado"`  
-**Tipo**: String
+**Valores permitidos**: `0` (Puntual) o `1` (Retrasado)  
+**Tipo**: Integer  
+**Descripción**: Según alcance sugerido del proyecto
 
 ### 3.5 Probabilidad/Confianza
 

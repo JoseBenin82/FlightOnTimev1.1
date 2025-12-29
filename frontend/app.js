@@ -70,6 +70,12 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.form.addEventListener('submit', handleSubmit);
     elements.mockBtn.addEventListener('click', handleMockSubmit);
 
+    // Inicializar i18n
+    initializeI18n();
+
+    // Inicializar panel de configuración
+    initializeSettingsPanel();
+
     // Verificar estado del backend
     checkBackendHealth();
 });
@@ -99,10 +105,10 @@ function updateStatusIndicator(isHealthy) {
 
     if (isHealthy) {
         statusDot.style.background = 'hsl(142, 71%, 45%)';
-        statusText.textContent = 'Sistema Operativo';
+        statusText.textContent = window.i18n.t('header.status.operational');
     } else {
         statusDot.style.background = 'hsl(45, 100%, 51%)';
-        statusText.textContent = 'Modo Limitado';
+        statusText.textContent = window.i18n.t('header.status.limited');
     }
 }
 
@@ -114,7 +120,7 @@ async function handleSubmit(event) {
 
     // Validar que origen y destino sean diferentes
     if (elements.origen.value === elements.destino.value) {
-        alert('⚠️ El aeropuerto de origen y destino deben ser diferentes');
+        alert(window.i18n.t('error.same.airport'));
         return;
     }
 
@@ -138,7 +144,7 @@ async function handleMockSubmit(event) {
 
     // Validar que origen y destino sean diferentes
     if (elements.origen.value === elements.destino.value) {
-        alert('⚠️ El aeropuerto de origen y destino deben ser diferentes');
+        alert(window.i18n.t('error.same.airport'));
         return;
     }
 
@@ -200,7 +206,7 @@ async function sendPredictionRequest(data, useMock) {
         console.log('📥 Respuesta recibida:', result);
 
         // Verificar si hay error de validación
-        if (result.prevision === 'Error' && result.metadata && result.metadata.error) {
+        if (result.prediccion === 'Error' && result.metadata && result.metadata.error) {
             throw new Error(result.metadata.error);
         }
 
@@ -243,27 +249,34 @@ async function sendPredictionRequest(data, useMock) {
 // VISUALIZACIÓN DE RESULTADOS
 // ============================================================================
 function displayResults(data) {
+    // Guardar datos para re-renderizar cuando cambien las unidades
+    window.lastPredictionData = data;
+
     // Determinar si es puntual o retrasado
-    const isPuntual = data.prevision === 'Puntual'; // API usa 'prevision'
+    // API ahora devuelve: 0 = Puntual, 1 = Retrasado (según CONTRATO_INTEGRACION.md)
+    const isPuntual = data.prediccion === 0;
+    const predictionText = isPuntual ? window.i18n.t('results.ontime') : window.i18n.t('results.delayed');
 
     // Actualizar icono y estado
     elements.predictionIcon.innerHTML = isPuntual ? '✈️' : '⏰';
     elements.predictionIcon.className = `prediction-icon ${isPuntual ? 'success' : 'danger'}`;
 
-    elements.predictionStatus.textContent = data.prevision;
+    elements.predictionStatus.textContent = predictionText;
     elements.predictionStatus.className = `prediction-status ${isPuntual ? 'success' : 'danger'}`;
 
     elements.predictionSubtitle.textContent = isPuntual
-        ? 'El vuelo tiene alta probabilidad de despegar a tiempo'
-        : 'El vuelo podría experimentar retrasos';
+        ? window.i18n.t('results.ontime.subtitle')
+        : window.i18n.t('results.delayed.subtitle');
 
-    // Actualizar métricas
-    const probabilityPercent = (data.probabilidad * 100).toFixed(1); // API usa 'probabilidad'
+    // Actualizar métricas (usando nombres del contrato)
+    const probabilityPercent = (data.probabilidad_retraso * 100).toFixed(1);
     const confidencePercent = (data.confianza * 100).toFixed(1);
 
     elements.metricProbability.textContent = `${probabilityPercent}%`;
     elements.metricConfidence.textContent = `${confidencePercent}%`;
-    elements.metricDistance.textContent = `${data.distancia_km.toFixed(0)} km`;
+
+    // Usar convertidor de unidades para la distancia
+    elements.metricDistance.textContent = window.unitConverter.convertDistance(data.distancia_km, true);
 
     // Animar barras
     setTimeout(() => {
@@ -275,10 +288,10 @@ function displayResults(data) {
     if (data.clima_origen) {
         const clima = data.clima_origen;
         elements.weatherCondition.textContent = clima.descripcion || clima.condicion;
-        elements.weatherTemp.textContent = `${clima.temperatura.toFixed(1)}°C`;
+        elements.weatherTemp.textContent = window.unitConverter.convertTemperature(clima.temperatura);
         elements.weatherHumidity.textContent = `${clima.humedad}%`;
-        elements.weatherWind.textContent = `${clima.viento_velocidad.toFixed(1)} m/s`;
-        elements.weatherVisibility.textContent = `${(clima.visibilidad / 1000).toFixed(1)} km`;
+        elements.weatherWind.textContent = window.unitConverter.convertWindSpeed(clima.viento_velocidad);
+        elements.weatherVisibility.textContent = window.unitConverter.convertVisibility(clima.visibilidad);
     }
 
     // Actualizar metadata
@@ -403,9 +416,9 @@ function disableButtons(disable) {
     elements.mockBtn.disabled = disable;
 
     if (disable) {
-        elements.btnText.textContent = 'Procesando...';
+        elements.btnText.textContent = window.i18n.t('form.processing');
     } else {
-        elements.btnText.textContent = 'Obtener Predicción';
+        elements.btnText.textContent = window.i18n.t('form.submit');
     }
 }
 
@@ -419,5 +432,149 @@ window.addEventListener('error', (event) => {
 window.addEventListener('unhandledrejection', (event) => {
     console.error('❌ Promise rechazada:', event.reason);
 });
+
+// ============================================================================
+// INTERNACIONALIZACIÓN (i18n)
+// ============================================================================
+
+/**
+ * Inicializa el sistema de internacionalización
+ */
+function initializeI18n() {
+    // Aplicar traducciones iniciales
+    updateAllTranslations();
+
+    // Escuchar cambios de idioma
+    window.addEventListener('languageChanged', () => {
+        updateAllTranslations();
+
+        // Re-renderizar resultados si están visibles
+        if (elements.resultsSection.style.display !== 'none') {
+            // Los resultados se actualizarán automáticamente con los atributos data-i18n
+        }
+    });
+
+    // Escuchar cambios de unidad
+    window.addEventListener('unitChanged', () => {
+        // Re-renderizar resultados si están visibles
+        if (elements.resultsSection.style.display !== 'none' && window.lastPredictionData) {
+            displayResults(window.lastPredictionData);
+        }
+    });
+
+    console.log('✅ Sistema i18n inicializado');
+}
+
+/**
+ * Actualiza todas las traducciones en la página
+ */
+function updateAllTranslations() {
+    const elementsWithI18n = document.querySelectorAll('[data-i18n]');
+
+    elementsWithI18n.forEach(element => {
+        const key = element.getAttribute('data-i18n');
+        const translation = window.i18n.t(key);
+
+        // Actualizar el contenido del elemento
+        if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+            element.placeholder = translation;
+        } else if (element.tagName === 'OPTION' || element.tagName === 'OPTGROUP') {
+            element.textContent = translation;
+        } else {
+            // Para otros elementos, preservar el HTML interno si tiene hijos
+            if (element.children.length === 0) {
+                element.textContent = translation;
+            } else {
+                // Si tiene hijos, solo actualizar el texto directo
+                const textNodes = Array.from(element.childNodes).filter(node => node.nodeType === Node.TEXT_NODE);
+                if (textNodes.length > 0) {
+                    textNodes[0].textContent = translation;
+                }
+            }
+        }
+    });
+}
+
+// ============================================================================
+// PANEL DE CONFIGURACIÓN
+// ============================================================================
+
+/**
+ * Inicializa el panel de configuración
+ */
+function initializeSettingsPanel() {
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const settingsClose = document.getElementById('settingsClose');
+
+    const langEs = document.getElementById('langEs');
+    const langEn = document.getElementById('langEn');
+    const unitKm = document.getElementById('unitKm');
+    const unitMiles = document.getElementById('unitMiles');
+
+    // Abrir panel
+    settingsBtn.addEventListener('click', () => {
+        settingsPanel.classList.add('active');
+    });
+
+    // Cerrar panel
+    settingsClose.addEventListener('click', () => {
+        settingsPanel.classList.remove('active');
+    });
+
+    // Cerrar al hacer clic fuera del panel
+    settingsPanel.addEventListener('click', (e) => {
+        if (e.target === settingsPanel) {
+            settingsPanel.classList.remove('active');
+        }
+    });
+
+    // Cambiar idioma
+    langEs.addEventListener('click', () => {
+        window.i18n.setLanguage('es');
+        langEs.classList.add('active');
+        langEn.classList.remove('active');
+    });
+
+    langEn.addEventListener('click', () => {
+        window.i18n.setLanguage('en');
+        langEn.classList.add('active');
+        langEs.classList.remove('active');
+    });
+
+    // Cambiar unidad
+    unitKm.addEventListener('click', () => {
+        window.unitConverter.setUnit('km');
+        unitKm.classList.add('active');
+        unitMiles.classList.remove('active');
+    });
+
+    unitMiles.addEventListener('click', () => {
+        window.unitConverter.setUnit('miles');
+        unitMiles.classList.add('active');
+        unitKm.classList.remove('active');
+    });
+
+    // Establecer estado inicial de los botones
+    const currentLang = window.i18n.getLanguage();
+    if (currentLang === 'es') {
+        langEs.classList.add('active');
+        langEn.classList.remove('active');
+    } else {
+        langEn.classList.add('active');
+        langEs.classList.remove('active');
+    }
+
+    const currentUnit = window.unitConverter.getUnit();
+    if (currentUnit === 'km') {
+        unitKm.classList.add('active');
+        unitMiles.classList.remove('active');
+    } else {
+        unitMiles.classList.add('active');
+        unitKm.classList.remove('active');
+    }
+
+    console.log('✅ Panel de configuración inicializado');
+}
 
 console.log('✅ App.js cargado correctamente');

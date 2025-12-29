@@ -103,12 +103,13 @@ class WeatherData(BaseModel):
 
 class PredictionResponse(BaseModel):
     """Respuesta completa de la predicción"""
-    prevision: str  # "Puntual" o "Retrasado"
-    probabilidad: float
+    prediccion: int  # 0 = Puntual, 1 = Retrasado
+    probabilidad_retraso: float
     confianza: float
     distancia_km: float
     clima_origen: WeatherData
     metadata: Dict[str, Any]
+
 
 
 # ============================================================================
@@ -432,14 +433,14 @@ async def predict_internal(request: PredictionRequest):
             probabilidades = model.predict_proba(features_df)[0]
             prob_retraso = float(probabilidades[1])
             
-            # Predicción binaria
-            prediccion_binaria = model.predict(features_df)[0]
-            prediccion_texto = "Retrasado" if prediccion_binaria == 1 else "Puntual"
+            # Predicción binaria: 0 = Puntual, 1 = Retrasado
+            prediccion_binaria = int(model.predict(features_df)[0])
             
             # Confianza (máxima probabilidad)
             confianza = float(max(probabilidades))
             
-            logger.info(f"✅ Predicción completada: {prediccion_texto} (prob_retraso: {prob_retraso:.2%}, confianza: {confianza:.2%})")
+            prediccion_texto_log = "Retrasado" if prediccion_binaria == 1 else "Puntual"
+            logger.info(f"✅ Predicción completada: {prediccion_texto_log} (valor: {prediccion_binaria}, prob_retraso: {prob_retraso:.2%}, confianza: {confianza:.2%})")
             
         except Exception as e:
             logger.error(f"❌ Error en predicción del modelo: {e}", exc_info=True)
@@ -449,8 +450,8 @@ async def predict_internal(request: PredictionRequest):
         # 5. CONSTRUCCIÓN DE RESPUESTA
         # ====================================================================
         response = PredictionResponse(
-            prevision=prediccion_texto,
-            probabilidad=round(prob_retraso, 4),
+            prediccion=prediccion_binaria,
+            probabilidad_retraso=round(prob_retraso, 4),
             confianza=round(confianza, 4),
             distancia_km=distancia_km,
             clima_origen=clima_origen,
@@ -464,6 +465,7 @@ async def predict_internal(request: PredictionRequest):
             }
         )
         
+        prediccion_texto = "Retrasado" if prediccion_binaria == 1 else "Puntual"
         logger.info(f"📤 Respuesta preparada exitosamente para {request.origen} → {request.destino}")
         return response
         

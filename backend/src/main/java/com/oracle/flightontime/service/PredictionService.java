@@ -218,8 +218,8 @@ public class PredictionService {
         // Limitar entre 0.0 y 1.0
         probabilidadRetraso = Math.max(0.0, Math.min(1.0, probabilidadRetraso));
 
-        // Determinar predicción binaria
-        String prediccion = probabilidadRetraso > 0.5 ? "Retrasado" : "Puntual";
+        // Determinar predicción binaria: 0 = Puntual, 1 = Retrasado
+        Integer prediccion = probabilidadRetraso > 0.5 ? 1 : 0;
 
         // Calcular confianza (máxima probabilidad entre las dos clases)
         double confianza = Math.max(probabilidadRetraso, 1.0 - probabilidadRetraso);
