@@ -54,6 +54,12 @@ public class PredictionResponseDTO {
     private WeatherDataDTO climaOrigen;
 
     /**
+     * Datos meteorológicos del aeropuerto de destino
+     */
+    @JsonProperty("clima_destino")
+    private WeatherDataDTO climaDestino;
+
+    /**
      * Metadata adicional (aerolínea, ruta, timestamps, etc.)
      */
     @JsonProperty("metadata")
@@ -64,4 +70,24 @@ public class PredictionResponseDTO {
      */
     @JsonProperty("modo_mock")
     private Boolean modoMock;
+
+    // Getters
+    public Integer getPrediccion() { return prediccion; }
+    public Double getProbabilidadRetraso() { return probabilidadRetraso; }
+    public Double getConfianza() { return confianza; }
+    public Double getDistanciaKm() { return distanciaKm; }
+    public WeatherDataDTO getClimaOrigen() { return climaOrigen; }
+    public WeatherDataDTO getClimaDestino() { return climaDestino; }
+    public Map<String, Object> getMetadata() { return metadata; }
+    public Boolean getModoMock() { return modoMock; }
+
+    // Setters
+    public void setPrediccion(Integer prediccion) { this.prediccion = prediccion; }
+    public void setProbabilidadRetraso(Double probabilidadRetraso) { this.probabilidadRetraso = probabilidadRetraso; }
+    public void setConfianza(Double confianza) { this.confianza = confianza; }
+    public void setDistanciaKm(Double distanciaKm) { this.distanciaKm = distanciaKm; }
+    public void setClimaOrigen(WeatherDataDTO climaOrigen) { this.climaOrigen = climaOrigen; }
+    public void setClimaDestino(WeatherDataDTO climaDestino) { this.climaDestino = climaDestino; }
+    public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }
+    public void setModoMock(Boolean modoMock) { this.modoMock = modoMock; }
 }

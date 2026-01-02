@@ -50,14 +50,14 @@ public class PredictionController {
             @RequestParam(value = "mock", defaultValue = "false") boolean useMock) {
 
         try {
-            logger.info("📥 Recibida solicitud de predicción: {} {} → {}",
+            logger.info(" Recibida solicitud de predicción: {} {} → {}",
                     request.getAerolinea(),
                     request.getOrigen(),
                     request.getDestino());
 
             // Validación adicional de negocio
             if (request.getOrigen().equals(request.getDestino())) {
-                logger.warn("⚠️ Origen y destino son iguales: {}", request.getOrigen());
+                logger.warn("Origen y destino son iguales: {}", request.getOrigen());
                 return ResponseEntity.badRequest().build();
             }
 
@@ -80,7 +80,7 @@ public class PredictionController {
 
             return ResponseEntity.status(e.getStatusCode()).body(
                     PredictionResponseDTO.builder()
-                            .prediccion("Error")
+                            .prediccion(-1)  // -1 indica error
                             .probabilidadRetraso(0.0)
                             .confianza(0.0)
                             .distanciaKm(0.0)

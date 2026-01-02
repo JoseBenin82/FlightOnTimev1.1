@@ -43,12 +43,19 @@ const elements = {
     probabilityBar: document.getElementById('probabilityBar'),
     confidenceBar: document.getElementById('confidenceBar'),
 
-    // Clima
+    // Clima Origen
     weatherCondition: document.getElementById('weatherCondition'),
     weatherTemp: document.getElementById('weatherTemp'),
     weatherHumidity: document.getElementById('weatherHumidity'),
     weatherWind: document.getElementById('weatherWind'),
     weatherVisibility: document.getElementById('weatherVisibility'),
+
+    // Clima Destino
+    weatherConditionDest: document.getElementById('weatherConditionDest'),
+    weatherTempDest: document.getElementById('weatherTempDest'),
+    weatherHumidityDest: document.getElementById('weatherHumidityDest'),
+    weatherWindDest: document.getElementById('weatherWindDest'),
+    weatherVisibilityDest: document.getElementById('weatherVisibilityDest'),
 
     // Metadata
     metadataGrid: document.getElementById('metadataGrid')
@@ -69,6 +76,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event Listeners
     elements.form.addEventListener('submit', handleSubmit);
     elements.mockBtn.addEventListener('click', handleMockSubmit);
+
+    // Airline Change Listener
+    elements.aerolinea.addEventListener('change', handleAirlineChange);
 
     // Inicializar i18n
     initializeI18n();
@@ -168,6 +178,8 @@ async function sendPredictionRequest(data, useMock) {
     showLoading(true);
     disableButtons(true);
 
+    const startTime = performance.now();
+
     try {
         const url = `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.predict}${useMock ? '?mock=true' : ''}`;
 
@@ -203,12 +215,20 @@ async function sendPredictionRequest(data, useMock) {
         }
 
         const result = await response.json();
+        const endTime = performance.now();
+        const clientTime = Math.round(endTime - startTime);
+
         console.log('📥 Respuesta recibida:', result);
+        console.log(`⏱️ Tiempo Cliente: ${clientTime}ms`);
 
         // Verificar si hay error de validación
         if (result.prediccion === 'Error' && result.metadata && result.metadata.error) {
             throw new Error(result.metadata.error);
         }
+
+        // Agregar tiempo del cliente a la metadata
+        if (!result.metadata) result.metadata = {};
+        result.metadata.tiempo_cliente_ms = clientTime;
 
         // Mostrar resultados
         displayResults(result);
@@ -284,7 +304,7 @@ function displayResults(data) {
         elements.confidenceBar.style.width = `${confidencePercent}%`;
     }, 100);
 
-    // Actualizar clima
+    // Actualizar clima Origen
     if (data.clima_origen) {
         const clima = data.clima_origen;
         elements.weatherCondition.textContent = clima.descripcion || clima.condicion;
@@ -292,6 +312,16 @@ function displayResults(data) {
         elements.weatherHumidity.textContent = `${clima.humedad}%`;
         elements.weatherWind.textContent = window.unitConverter.convertWindSpeed(clima.viento_velocidad);
         elements.weatherVisibility.textContent = window.unitConverter.convertVisibility(clima.visibilidad);
+    }
+
+    // Actualizar clima Destino
+    if (data.clima_destino) {
+        const clima = data.clima_destino;
+        elements.weatherConditionDest.textContent = clima.descripcion || clima.condicion;
+        elements.weatherTempDest.textContent = window.unitConverter.convertTemperature(clima.temperatura);
+        elements.weatherHumidityDest.textContent = `${clima.humedad}%`;
+        elements.weatherWindDest.textContent = window.unitConverter.convertWindSpeed(clima.viento_velocidad);
+        elements.weatherVisibilityDest.textContent = window.unitConverter.convertVisibility(clima.visibilidad);
     }
 
     // Actualizar metadata
@@ -317,16 +347,16 @@ function displayMetadata(metadata, isMock) {
         let type = 'info';
 
         if (modo === 'MOCK_CON_ML') {
-            modoTexto = '🚀 Demo con Modelo ML Real';
+            modoTexto = 'Demo con Modelo ML Real';
             type = 'success';
         } else if (modo === 'MOCK_FALLBACK') {
-            modoTexto = '🔧 Demo (Fallback activo)';
+            modoTexto = 'Demo (Fallback activo)';
             type = 'warning';
         } else if (isMock) {
-            modoTexto = '🔧 Demo (Datos simulados)';
+            modoTexto = 'Demo (Datos simulados)';
             type = 'info';
         } else {
-            modoTexto = '🚀 Predicción Real (Producción)';
+            modoTexto = 'Predicción Real (Producción)';
             type = 'success';
         }
 
@@ -346,7 +376,9 @@ function displayMetadata(metadata, isMock) {
         'origen_nombre': 'Origen',
         'destino_nombre': 'Destino',
         'fecha_partida': 'Salida Programada',
-        'timestamp_prediccion': 'Cálculo Realizado'
+        'timestamp_prediccion': 'Cálculo Realizado',
+        'tiempo_respuesta_ms': 'Tiempo ML (Backend)',
+        'tiempo_cliente_ms': 'Tiempo Total (Cliente)'
     };
 
     for (const [key, label] of Object.entries(metadataMap)) {
@@ -534,12 +566,22 @@ function initializeSettingsPanel() {
         window.i18n.setLanguage('es');
         langEs.classList.add('active');
         langEn.classList.remove('active');
+
+        // Auto-switch to Metric (SI) for Spanish
+        window.unitConverter.setUnit('km');
+        unitKm.classList.add('active');
+        unitMiles.classList.remove('active');
     });
 
     langEn.addEventListener('click', () => {
         window.i18n.setLanguage('en');
         langEn.classList.add('active');
         langEs.classList.remove('active');
+
+        // Auto-switch to Imperial for English
+        window.unitConverter.setUnit('miles');
+        unitMiles.classList.add('active');
+        unitKm.classList.remove('active');
     });
 
     // Cambiar unidad
@@ -575,6 +617,65 @@ function initializeSettingsPanel() {
     }
 
     console.log('✅ Panel de configuración inicializado');
+}
+
+// ============================================================================
+// GESTIÓN DINÁMICA DE AEROPUERTOS
+// ============================================================================
+function handleAirlineChange() {
+    const airlineId = elements.aerolinea.value;
+    const originInput = elements.origen;
+    const destInput = elements.destino;
+    const originList = document.getElementById('origen-list');
+    const destList = document.getElementById('destino-list');
+
+    // Limpiar datalists
+    originList.innerHTML = '';
+    destList.innerHTML = '';
+
+    // Limpiar inputs si cambia la aerolínea
+    originInput.value = '';
+    destInput.value = '';
+
+    // Deshabilitar si no hay aerolínea seleccionada
+    if (!airlineId) {
+        originInput.disabled = true;
+        destInput.disabled = true;
+        return;
+    }
+
+    // Verificar si tenemos datos cargados
+    if (typeof AIRLINE_DATA === 'undefined') {
+        console.error('❌ AIRLINE_DATA no está definido. Verifique que airline_data.js se haya cargado.');
+        alert('ErrorCritico: Datos de aerolíneas no cargados.');
+        return;
+    }
+
+    const airlineData = AIRLINE_DATA[airlineId];
+    if (!airlineData) {
+        console.error(`❌ No hay datos para la aerolínea ID: ${airlineId}`);
+        return;
+    }
+
+    // Poblar Origen (Datalist)
+    // Usamos Set para evitar duplicados si los hubiera y ordenar alfabéticamente
+    const originesSorted = [...new Set(airlineData.origenes)].sort();
+    originesSorted.forEach(code => {
+        const option = document.createElement('option');
+        option.value = code;
+        originList.appendChild(option);
+    });
+
+    // Poblar Destino (Datalist)
+    const destinosSorted = [...new Set(airlineData.destinos)].sort();
+    destinosSorted.forEach(code => {
+        const option = document.createElement('option');
+        option.value = code;
+        destList.appendChild(option);
+    });
+
+    originInput.disabled = false;
+    destInput.disabled = false;
 }
 
 console.log('✅ App.js cargado correctamente');

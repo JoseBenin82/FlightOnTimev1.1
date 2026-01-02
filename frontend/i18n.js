@@ -39,6 +39,8 @@ const translations = {
 
         // Weather
         'weather.title': 'Clima Detectado en Origen',
+        'weather.title.origin': 'Clima en Origen',
+        'weather.title.dest': 'Clima en Destino',
         'weather.condition': 'Condición',
         'weather.temperature': 'Temperatura',
         'weather.humidity': 'Humedad',
@@ -126,6 +128,8 @@ const translations = {
 
         // Weather
         'weather.title': 'Detected Weather at Origin',
+        'weather.title.origin': 'Weather at Origin',
+        'weather.title.dest': 'Weather at Destination',
         'weather.condition': 'Condition',
         'weather.temperature': 'Temperature',
         'weather.humidity': 'Humidity',
@@ -267,12 +271,15 @@ class UnitConverter {
     }
 
     /**
-     * Convierte temperatura (siempre en Celsius, pero formatea)
+     * Convierte temperatura
      * @param {number} celsius - Temperatura en Celsius
      * @returns {string} Temperatura formateada
      */
     convertTemperature(celsius) {
-        // Por ahora solo Celsius, pero se puede extender a Fahrenheit
+        if (this.currentUnit === 'miles') {
+            const fahrenheit = (celsius * 9 / 5) + 32;
+            return `${fahrenheit.toFixed(1)}°F`;
+        }
         return `${celsius.toFixed(1)}°C`;
     }
 

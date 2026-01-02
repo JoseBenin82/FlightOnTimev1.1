@@ -123,14 +123,8 @@
                         </label>
                         <select id="aerolinea" name="aerolinea" class="form-select" required>
                             <option value="" data-i18n="form.airline.select">Seleccione una aerolínea</option>
-                            <option value="LATAM">LATAM Airlines</option>
-                            <option value="GOL">GOL Linhas Aéreas</option>
-                            <option value="AZUL">Azul Brazilian Airlines</option>
-                            <option value="AVIANCA">Avianca</option>
-                            <option value="COPA">Copa Airlines</option>
-                            <option value="AMERICAN">American Airlines</option>
-                            <option value="UNITED">United Airlines</option>
-                            <option value="DELTA">Delta Air Lines</option>
+                            <option value="1">Delta Air Lines (DL)</option>
+                            <option value="2">Southwest Airlines (WN)</option>
                         </select>
                     </div>
 
@@ -143,43 +137,10 @@
                             </svg>
                             <span data-i18n="form.origin">Aeropuerto de Origen</span>
                         </label>
-                        <select id="origen" name="origen" class="form-select" required>
-                            <option value="" data-i18n="form.origin.select">Seleccione origen</option>
-                            <optgroup label="Brasil" data-i18n="country.brazil">
-                                <option value="GRU">GRU - São Paulo-Guarulhos</option>
-                                <option value="GIG">GIG - Rio de Janeiro-Galeão</option>
-                                <option value="BSB">BSB - Brasília</option>
-                                <option value="CGH">CGH - São Paulo-Congonhas</option>
-                                <option value="SSA">SSA - Salvador</option>
-                                <option value="CNF">CNF - Belo Horizonte</option>
-                                <option value="REC">REC - Recife</option>
-                                <option value="FOR">FOR - Fortaleza</option>
-                                <option value="POA">POA - Porto Alegre</option>
-                                <option value="CWB">CWB - Curitiba</option>
-                            </optgroup>
-                            <optgroup label="Estados Unidos" data-i18n="country.usa">
-                                <option value="JFK">JFK - New York</option>
-                                <option value="LAX">LAX - Los Angeles</option>
-                                <option value="ORD">ORD - Chicago</option>
-                                <option value="MIA">MIA - Miami</option>
-                                <option value="ATL">ATL - Atlanta</option>
-                                <option value="DFW">DFW - Dallas</option>
-                                <option value="SFO">SFO - San Francisco</option>
-                            </optgroup>
-                            <optgroup label="México" data-i18n="country.mexico">
-                                <option value="MEX">MEX - Ciudad de México</option>
-                                <option value="CUN">CUN - Cancún</option>
-                                <option value="GDL">GDL - Guadalajara</option>
-                                <option value="MTY">MTY - Monterrey</option>
-                            </optgroup>
-                            <optgroup label="Europa" data-i18n="country.europe">
-                                <option value="LHR">LHR - London</option>
-                                <option value="CDG">CDG - Paris</option>
-                                <option value="FRA">FRA - Frankfurt</option>
-                                <option value="MAD">MAD - Madrid</option>
-                                <option value="BCN">BCN - Barcelona</option>
-                            </optgroup>
-                        </select>
+                        <input type="text" id="origen" name="origen" class="form-input" list="origen-list"
+                            data-i18n="form.origin.placeholder" placeholder="Ej: JFK" required disabled
+                            style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
+                        <datalist id="origen-list"></datalist>
                     </div>
 
                     <!-- Aeropuerto de Destino -->
@@ -192,43 +153,10 @@
                             </svg>
                             <span data-i18n="form.destination">Aeropuerto de Destino</span>
                         </label>
-                        <select id="destino" name="destino" class="form-select" required>
-                            <option value="" data-i18n="form.destination.select">Seleccione destino</option>
-                            <optgroup label="Brasil" data-i18n="country.brazil">
-                                <option value="GRU">GRU - São Paulo-Guarulhos</option>
-                                <option value="GIG">GIG - Rio de Janeiro-Galeão</option>
-                                <option value="BSB">BSB - Brasília</option>
-                                <option value="CGH">CGH - São Paulo-Congonhas</option>
-                                <option value="SSA">SSA - Salvador</option>
-                                <option value="CNF">CNF - Belo Horizonte</option>
-                                <option value="REC">REC - Recife</option>
-                                <option value="FOR">FOR - Fortaleza</option>
-                                <option value="POA">POA - Porto Alegre</option>
-                                <option value="CWB">CWB - Curitiba</option>
-                            </optgroup>
-                            <optgroup label="Estados Unidos" data-i18n="country.usa">
-                                <option value="JFK">JFK - New York</option>
-                                <option value="LAX">LAX - Los Angeles</option>
-                                <option value="ORD">ORD - Chicago</option>
-                                <option value="MIA">MIA - Miami</option>
-                                <option value="ATL">ATL - Atlanta</option>
-                                <option value="DFW">DFW - Dallas</option>
-                                <option value="SFO">SFO - San Francisco</option>
-                            </optgroup>
-                            <optgroup label="México" data-i18n="country.mexico">
-                                <option value="MEX">MEX - Ciudad de México</option>
-                                <option value="CUN">CUN - Cancún</option>
-                                <option value="GDL">GDL - Guadalajara</option>
-                                <option value="MTY">MTY - Monterrey</option>
-                            </optgroup>
-                            <optgroup label="Europa" data-i18n="country.europe">
-                                <option value="LHR">LHR - London</option>
-                                <option value="CDG">CDG - Paris</option>
-                                <option value="FRA">FRA - Frankfurt</option>
-                                <option value="MAD">MAD - Madrid</option>
-                                <option value="BCN">BCN - Barcelona</option>
-                            </optgroup>
-                        </select>
+                        <input type="text" id="destino" name="destino" class="form-input" list="destino-list"
+                            data-i18n="form.destination.placeholder" placeholder="Ej: LAX" required disabled
+                            style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
+                        <datalist id="destino-list"></datalist>
                     </div>
 
                     <!-- Fecha de Partida -->
@@ -311,36 +239,63 @@
                 </div>
 
                 <!-- Clima -->
-                <div class="weather-section" id="weatherSection">
-                    <h4 class="section-subtitle">
-                        <svg class="subtitle-icon" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2" />
-                            <path
-                                d="M12 1V3M12 21V23M23 12H21M3 12H1M20.49 20.49L19.07 19.07M4.93 4.93L3.51 3.51M20.49 3.51L19.07 4.93M4.93 19.07L3.51 20.49"
-                                stroke="currentColor" stroke-width="2" />
-                        </svg>
-                        <span data-i18n="weather.title">Clima Detectado en Origen</span>
-                    </h4>
-                    <div class="weather-grid">
-                        <div class="weather-item">
-                            <span class="weather-label" data-i18n="weather.condition">Condición</span>
-                            <span class="weather-value" id="weatherCondition">-</span>
+                <div class="weather-container-split"
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 2rem;">
+                    <!-- Clima Origen -->
+                    <div class="weather-section" id="weatherSectionOrigin">
+                        <h4 class="section-subtitle">
+                            <span data-i18n="weather.title.origin">Clima en Origen</span>
+                        </h4>
+                        <div class="weather-grid">
+                            <div class="weather-item">
+                                <span class="weather-label" data-i18n="weather.condition">Condición</span>
+                                <span class="weather-value" id="weatherCondition"></span>
+                            </div>
+                            <div class="weather-item">
+                                <span class="weather-label" data-i18n="weather.temperature">Temperatura</span>
+                                <span class="weather-value" id="weatherTemp"></span>
+                            </div>
+                            <div class="weather-item">
+                                <span class="weather-label" data-i18n="weather.humidity">Humedad</span>
+                                <span class="weather-value" id="weatherHumidity"></span>
+                            </div>
+                            <div class="weather-item">
+                                <span class="weather-label" data-i18n="weather.wind">Viento</span>
+                                <span class="weather-value" id="weatherWind"></span>
+                            </div>
+                            <div class="weather-item">
+                                <span class="weather-label" data-i18n="weather.visibility">Visibilidad</span>
+                                <span class="weather-value" id="weatherVisibility"></span>
+                            </div>
                         </div>
-                        <div class="weather-item">
-                            <span class="weather-label" data-i18n="weather.temperature">Temperatura</span>
-                            <span class="weather-value" id="weatherTemp">-</span>
-                        </div>
-                        <div class="weather-item">
-                            <span class="weather-label" data-i18n="weather.humidity">Humedad</span>
-                            <span class="weather-value" id="weatherHumidity">-</span>
-                        </div>
-                        <div class="weather-item">
-                            <span class="weather-label" data-i18n="weather.wind">Viento</span>
-                            <span class="weather-value" id="weatherWind">-</span>
-                        </div>
-                        <div class="weather-item">
-                            <span class="weather-label" data-i18n="weather.visibility">Visibilidad</span>
-                            <span class="weather-value" id="weatherVisibility">-</span>
+                    </div>
+
+                    <!-- Clima Destino -->
+                    <div class="weather-section" id="weatherSectionDest">
+                        <h4 class="section-subtitle">
+                            <span data-i18n="weather.title.dest">Clima en Destino</span>
+                        </h4>
+                        <div class="weather-grid">
+                            <div class="weather-item">
+                                <span class="weather-label" data-i18n="weather.condition">Condición</span>
+                                <span class="weather-value" id="weatherConditionDest"></span>
+                            </div>
+                            <div class="weather-item">
+                                <span class="weather-label" data-i18n="weather.temperature">Temperatura</span>
+                                <span class="weather-value" id="weatherTempDest"></span>
+                            </div>
+                            <div class="weather-item">
+                                <span class="weather-label" data-i18n="weather.humidity">Humedad</span>
+                                <span class="weather-value" id="weatherHumidityDest"></span>
+                            </div>
+                            <div class="weather-item">
+                                <span class="weather-label" data-i18n="weather.wind">Viento</span>
+                                <span class="weather-value" id="weatherWindDest"></span>
+                            </div>
+                            <div class="weather-item">
+                                <span class="weather-label" data-i18n="weather.visibility">Visibilidad</span>
+                                <span class="weather-value" id="weatherVisibilityDest"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -360,7 +315,7 @@
     <!-- FOOTER -->
     <!-- ================================================================ -->
     <footer class="footer">
-        <p data-i18n="footer.text">&copy; 2025 FlightOnTime - Oracle Enterprise Partner | Sistema de Misión Crítica</p>
+        <p data-i18n="footer.text">&copy; 2025 FlightOnTime - Oracle ONE| Sistema de Misión Crítica</p>
     </footer>
 
     <!-- ================================================================ -->
@@ -372,6 +327,7 @@
     </div>
 
     <script src="i18n.js"></script>
+    <script src="airline_data.js"></script>
     <script src="app.js"></script>
 </body>
 

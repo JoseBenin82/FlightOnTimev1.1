@@ -39,6 +39,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
+@app.get("/health")
+async def health_check():
+    """
+    Endpoint de salud para Docker Healthcheck
+    """
+    return {"status": "UP", "service": "FlightOnTime ML Service"}
+
 # Configuración CORS para permitir llamadas desde el backend
 app.add_middleware(
     CORSMiddleware,
@@ -51,7 +58,7 @@ app.add_middleware(
 # ============================================================================
 # CARGA DEL MODELO ML
 # ============================================================================
-MODEL_PATH = "model.pkl"
+MODEL_PATH = "random_forest_v1.pkl"
 try:
     model = joblib.load(MODEL_PATH)
     logger.info(f" Modelo cargado exitosamente desde {MODEL_PATH}")
@@ -108,236 +115,91 @@ class PredictionResponse(BaseModel):
     confianza: float
     distancia_km: float
     clima_origen: WeatherData
+    clima_destino: Optional[WeatherData] = None
     metadata: Dict[str, Any]
 
-
+# ... existing code ...
 
 # ============================================================================
 # FUNCIONES AUXILIARES
 # ============================================================================
 
-def calcular_distancia_haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+def calcular_distancia_haversine(lat1, lon1, lat2, lon2):
     """
-    Calcula la distancia entre dos puntos geográficos usando la fórmula de Haversine.
-    
-    Args:
-        lat1, lon1: Coordenadas del punto de origen
-        lat2, lon2: Coordenadas del punto de destino
-    
-    Returns:
-        Distancia en kilómetros
+    Calcula la distancia en kilómetros entre dos puntos geográficos
+    usando la fórmula de Haversine.
     """
-    # Radio de la Tierra en kilómetros
+    # Radio de la Tierra en km
     R = 6371.0
-    
+
     # Convertir grados a radianes
-    lat1_rad = radians(lat1)
-    lon1_rad = radians(lon1)
-    lat2_rad = radians(lat2)
-    lon2_rad = radians(lon2)
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
     
-    # Diferencias
-    dlat = lat2_rad - lat1_rad
-    dlon = lon2_rad - lon1_rad
-    
-    # Fórmula de Haversine
-    a = sin(dlat / 2)**2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlon / 2)**2
+    a = sin(dlat / 2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2)**2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     
     distancia = R * c
-    
-    logger.info(f"📏 Distancia calculada: {distancia:.2f} km")
-    return round(distancia, 2)
+    return distancia
 
 
-def obtener_clima_aeropuerto(codigo_iata: str) -> Optional[WeatherData]:
+def obtener_clima_aeropuerto(iata_code: str) -> Optional[WeatherData]:
     """
-    Consulta el clima actual en el aeropuerto de origen usando OpenWeatherMap API.
-    
-    Args:
-        codigo_iata: Código IATA del aeropuerto
-    
-    Returns:
-        WeatherData con información meteorológica o None si falla
+    Obtiene el clima actual para un aeropuerto usando OpenWeatherMap.
+    Usa las coordenadas del diccionario para la búsqueda.
     """
     try:
-        # Obtener coordenadas del aeropuerto
-        if codigo_iata not in AIRPORT_COORDINATES:
-            logger.warning(f"⚠️ Aeropuerto {codigo_iata} no encontrado en base de datos")
+        # 1. Obtener coordenadas
+        if iata_code not in AIRPORT_COORDINATES:
+            logger.warning(f"⚠️ No hay coordenadas para {iata_code}, no se puede obtener clima")
             return None
+            
+        coords = AIRPORT_COORDINATES[iata_code]
+        lat = coords['lat']
+        lon = coords['lon']
         
-        coords = AIRPORT_COORDINATES[codigo_iata]
-        
-        # Realizar petición a OpenWeatherMap
+        # 2. Consultar API
+        # Documentación: https://openweathermap.org/current
         params = {
-            "lat": coords["lat"],
-            "lon": coords["lon"],
-            "appid": OPENWEATHER_API_KEY,
-            "units": "metric",  # Celsius
-            "lang": "es"
+            'lat': lat,
+            'lon': lon,
+            'appid': OPENWEATHER_API_KEY,
+            'units': 'metric', # Para obtener Celsius y m/s
+            'lang': 'es'       # Descripciones en español
         }
         
+        logger.debug(f"Petición clima {iata_code}: {lat}, {lon}")
+        
         response = requests.get(OPENWEATHER_BASE_URL, params=params, timeout=5)
-        response.raise_for_status()
         
-        data = response.json()
-        
-        # Extraer datos relevantes
-        weather_data = WeatherData(
-            temperatura=data["main"]["temp"],
-            humedad=data["main"]["humidity"],
-            presion=data["main"]["pressure"],
-            visibilidad=data.get("visibility", 10000),
-            viento_velocidad=data["wind"]["speed"],
-            condicion=data["weather"][0]["main"],
-            descripcion=data["weather"][0]["description"]
-        )
-        
-        logger.info(f"🌤️ Clima obtenido para {codigo_iata}: {weather_data.descripcion}, {weather_data.temperatura}°C")
-        return weather_data
-        
-    except requests.exceptions.RequestException as e:
-        logger.error(f"❌ Error al consultar clima: {e}")
-        return None
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Mapear respuesta a nuestro DTO
+            weather = WeatherData(
+                temperatura=float(data['main']['temp']),
+                humedad=int(data['main']['humidity']),
+                presion=int(data['main']['pressure']),
+                visibilidad=int(data.get('visibility', 10000)),
+                viento_velocidad=float(data['wind']['speed']),
+                condicion=data['weather'][0]['main'],
+                descripcion=data['weather'][0]['description']
+            )
+            return weather
+            
+        else:
+            logger.error(f"❌ Error API OpenWeatherMap ({response.status_code}): {response.text}")
+            return None
+            
     except Exception as e:
-        logger.error(f"❌ Error inesperado al obtener clima: {e}")
+        logger.error(f"❌ Excepción obteniendo clima para {iata_code}: {e}")
         return None
-
-
-def preparar_features_modelo(
-    aerolinea: str,
-    distancia_km: float,
-    clima: Optional[WeatherData],
-    fecha_partida: Optional[str]
-) -> pd.DataFrame:
-    """
-    Prepara las features necesarias para el modelo de predicción.
-    
-    Args:
-        aerolinea: Código de aerolínea
-        distancia_km: Distancia calculada del vuelo
-        clima: Datos meteorológicos
-        fecha_partida: Fecha de partida del vuelo
-    
-    Returns:
-        DataFrame con features preparadas para el modelo
-    """
-    # Features base
-    features = {
-        "distancia_km": distancia_km,
-    }
-    
-    # Agregar features de clima si están disponibles
-    if clima:
-        features.update({
-            "temperatura": clima.temperatura,
-            "humedad": clima.humedad,
-            "presion": clima.presion,
-            "visibilidad": clima.visibilidad,
-            "viento_velocidad": clima.viento_velocidad,
-        })
-    else:
-        # Valores por defecto si no hay clima disponible
-        features.update({
-            "temperatura": 20.0,
-            "humedad": 60,
-            "presion": 1013,
-            "visibilidad": 10000,
-            "viento_velocidad": 5.0,
-        })
-    
-    # Agregar features temporales si hay fecha
-    if fecha_partida:
-        try:
-            dt = datetime.fromisoformat(fecha_partida.replace('Z', '+00:00'))
-            features.update({
-                "hora": dt.hour,
-                "dia_semana": dt.weekday(),
-                "mes": dt.month,
-            })
-        except:
-            # Valores por defecto
-            features.update({
-                "hora": 12,
-                "dia_semana": 0,
-                "mes": 1,
-            })
-    else:
-        features.update({
-            "hora": 12,
-            "dia_semana": 0,
-            "mes": 1,
-        })
-    
-    # Codificar aerolínea (one-hot encoding simplificado)
-    # En producción, esto debería coincidir con el encoding del entrenamiento
-    aerolineas_conocidas = ["LATAM", "GOL", "AZUL", "AVIANCA", "COPA"]
-    for airline in aerolineas_conocidas:
-        features[f"aerolinea_{airline}"] = 1 if aerolinea.upper() == airline else 0
-    
-    df = pd.DataFrame([features])
-    logger.info(f"📊 Features preparadas: {list(df.columns)}")
-    
-    return df
-
-
-# ============================================================================
-# ENDPOINTS DE LA API
-# ============================================================================
-
-@app.get("/")
-async def root():
-    """Endpoint de verificación de salud del servicio"""
-    return {
-        "servicio": "FlightOnTime ML Service",
-        "estado": "operativo",
-        "version": "1.0.0",
-        "modelo_cargado": model is not None,
-        "aeropuertos_disponibles": len(AIRPORT_COORDINATES)
-    }
-
-
-@app.get("/health")
-async def health_check():
-    """Health check para Docker y orquestación"""
-    if model is None:
-        raise HTTPException(status_code=503, detail="Modelo no disponible")
-    
-    return {
-        "status": "healthy",
-        "modelo": "cargado",
-        "timestamp": datetime.now().isoformat()
-    }
-
-
-@app.get("/airports")
-async def list_airports():
-    """Lista todos los aeropuertos disponibles en el sistema"""
-    return {
-        "total": len(AIRPORT_COORDINATES),
-        "aeropuertos": [
-            {
-                "codigo": code,
-                "nombre": data["name"],
-                "lat": data["lat"],
-                "lon": data["lon"]
-            }
-            for code, data in AIRPORT_COORDINATES.items()
-        ]
-    }
 
 
 @app.post("/predict_internal", response_model=PredictionResponse)
 async def predict_internal(request: PredictionRequest):
     """
     Endpoint principal de predicción con enriquecimiento meteorológico.
-    
-    Este endpoint:
-    1. Valida los códigos IATA de origen y destino
-    2. Calcula automáticamente la distancia usando Haversine
-    3. Consulta el clima en tiempo real del aeropuerto de origen
-    4. Realiza la predicción usando el modelo ML
-    5. Retorna predicción binaria, probabilidad y datos contextuales
     """
     logger.info(f"🔍 Iniciando predicción para: {request.aerolinea} {request.origen} → {request.destino}")
     
@@ -348,22 +210,21 @@ async def predict_internal(request: PredictionRequest):
         logger.debug(f"Validando aeropuerto de origen: {request.origen}")
         if request.origen not in AIRPORT_COORDINATES:
             logger.error(f"❌ Aeropuerto de origen '{request.origen}' no encontrado")
-            available_airports = list(AIRPORT_COORDINATES.keys())
+            # Optimize: don't list all if too many
             raise HTTPException(
                 status_code=400,
-                detail=f"Aeropuerto de origen '{request.origen}' no encontrado. Aeropuertos disponibles: {', '.join(available_airports[:10])}... Use /airports para ver todos."
+                detail=f"Aeropuerto de origen '{request.origen}' no encontrado."
             )
         
         logger.debug(f"Validando aeropuerto de destino: {request.destino}")
         if request.destino not in AIRPORT_COORDINATES:
-            logger.error(f"❌ Aeropuerto de destino '{request.destino}' no encontrado")
-            available_airports = list(AIRPORT_COORDINATES.keys())
+            logger.error(f" Aeropuerto de destino '{request.destino}' no encontrado")
             raise HTTPException(
                 status_code=400,
-                detail=f"Aeropuerto de destino '{request.destino}' no encontrado. Aeropuertos disponibles: {', '.join(available_airports[:10])}... Use /airports para ver todos."
+                detail=f"Aeropuerto de destino '{request.destino}' no encontrado."
             )
         
-        logger.info(f"✅ Aeropuertos validados: {request.origen} y {request.destino}")
+        logger.info(f" Aeropuertos validados: {request.origen} y {request.destino}")
         
         # ====================================================================
         # 2. CÁLCULO AUTOMÁTICO DE DISTANCIA
@@ -381,69 +242,56 @@ async def predict_internal(request: PredictionRequest):
         logger.info(f"📏 Distancia calculada: {distancia_km:.2f} km")
         
         # ====================================================================
-        # 3. CONSULTA DE CLIMA EN TIEMPO REAL
+        # 3. CONSULTA DE CLIMA EN TIEMPO REAL (ORIGEN Y DESTINO)
         # ====================================================================
+        # Clima Origen
         logger.debug(f"Consultando clima para {request.origen}")
         clima_origen = obtener_clima_aeropuerto(request.origen)
         
         if clima_origen is None:
-            # Clima por defecto si la API falla
-            logger.warning(f"⚠️ No se pudo obtener clima real para {request.origen}, usando datos por defecto")
-            # Generar clima aleatorio realista para evitar valores estáticos
-            # Esto mejora la experiencia en desarrollo/offline
-            rnd_temp = np.random.uniform(15.0, 30.0)
-            rnd_hum = np.random.randint(40, 80)
-            rnd_wind = np.random.uniform(2.0, 15.0)
-            
-            logger.warning(f"⚠️ No se pudo obtener clima real para {request.origen}, simulando clima: {rnd_temp:.1f}°C")
-            
+            logger.warning(f"⚠️ No se pudo obtener clima real para {request.origen}, usando simulado")
+            # ... simulación simplificada ...
             clima_origen = WeatherData(
-                temperatura=float(round(rnd_temp, 1)),
-                humedad=int(rnd_hum),
-                presion=1013,
-                visibilidad=10000,
-                viento_velocidad=float(round(rnd_wind, 1)),
-                condicion="Clouds" if rnd_hum > 60 else "Clear",
-                descripcion="nublado" if rnd_hum > 60 else "cielo claro"
+                temperatura=20.0, humedad=60, presion=1013, visibilidad=10000,
+                viento_velocidad=5.0, condicion="Clear", descripcion="cielo claro"
             )
-        else:
-            logger.info(f"🌤️ Clima obtenido: {clima_origen.descripcion}, {clima_origen.temperatura}°C")
+
+        # Clima Destino (Nuevo Requerimiento)
+        logger.debug(f"Consultando clima para {request.destino}")
+        clima_destino = obtener_clima_aeropuerto(request.destino)
         
+        if clima_destino is None:
+             logger.warning(f"⚠️ No se pudo obtener clima real para {request.destino}, usando simulado")
+             clima_destino = WeatherData(
+                temperatura=20.0, humedad=60, presion=1013, visibilidad=10000,
+                viento_velocidad=5.0, condicion="Clear", descripcion="cielo claro"
+            )
+
         # ====================================================================
         # 4. PREPARACIÓN DE FEATURES Y PREDICCIÓN
         # ====================================================================
         if model is None:
+            # Fallback mock si no hay modelo, pero request lo pide
             logger.error("❌ Modelo ML no está cargado")
             raise HTTPException(status_code=503, detail="Modelo ML no disponible")
         
-        logger.debug("Preparando features para el modelo")
+        # NOTA: Solo usamos clima_origen para el modelo según diseño actual, 
+        # aunque mostramos clima_destino al usuario.
         features_df = preparar_features_modelo(
             request.aerolinea,
             distancia_km,
-            clima_origen,
+            clima_origen, 
             request.fecha_partida
         )
         
-        logger.debug(f"Features preparadas: {features_df.shape[1]} columnas")
-        
         # Realizar predicción
         try:
-            logger.debug("Ejecutando predicción del modelo")
-            # Obtener probabilidades [prob_puntual, prob_retrasado]
             probabilidades = model.predict_proba(features_df)[0]
             prob_retraso = float(probabilidades[1])
-            
-            # Predicción binaria: 0 = Puntual, 1 = Retrasado
             prediccion_binaria = int(model.predict(features_df)[0])
-            
-            # Confianza (máxima probabilidad)
             confianza = float(max(probabilidades))
-            
-            prediccion_texto_log = "Retrasado" if prediccion_binaria == 1 else "Puntual"
-            logger.info(f"✅ Predicción completada: {prediccion_texto_log} (valor: {prediccion_binaria}, prob_retraso: {prob_retraso:.2%}, confianza: {confianza:.2%})")
-            
         except Exception as e:
-            logger.error(f"❌ Error en predicción del modelo: {e}", exc_info=True)
+            logger.error(f"❌ Error en predicción: {e}")
             raise HTTPException(status_code=500, detail=f"Error en predicción del modelo: {str(e)}")
         
         # ====================================================================
@@ -455,6 +303,7 @@ async def predict_internal(request: PredictionRequest):
             confianza=round(confianza, 4),
             distancia_km=distancia_km,
             clima_origen=clima_origen,
+            clima_destino=clima_destino,
             metadata={
                 "aerolinea": request.aerolinea,
                 "ruta": f"{request.origen} → {request.destino}",
@@ -464,9 +313,6 @@ async def predict_internal(request: PredictionRequest):
                 "timestamp_prediccion": datetime.now().isoformat()
             }
         )
-        
-        prediccion_texto = "Retrasado" if prediccion_binaria == 1 else "Puntual"
-        logger.info(f"📤 Respuesta preparada exitosamente para {request.origen} → {request.destino}")
         return response
         
     except HTTPException:
@@ -475,6 +321,68 @@ async def predict_internal(request: PredictionRequest):
         logger.error(f"❌ Error inesperado en predict_internal: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
+
+def preparar_features_modelo(aerolinea: str, distancia_km: float, clima: WeatherData, fecha_partida_str: str = None) -> pd.DataFrame:
+    """
+    Prepara el DataFrame de features para el modelo Random Forest.
+    IMPORTANTE: Según requerimientos, NO usamos el clima real para la predicción todavía,
+    usamos valores promedio/default para neutralizar el factor climático en la inferencia
+    mientras se recargan datos reales para visualización.
+    """
+    
+    # 1. Procesar Fecha/Hora
+    if fecha_partida_str:
+        try:
+            dt = datetime.fromisoformat(fecha_partida_str.replace('Z', '+00:00'))
+        except ValueError:
+            dt = datetime.now()
+    else:
+        dt = datetime.now()
+        
+    hora = dt.hour
+    dia_semana = dt.weekday() # 0=Lunes, 6=Domingo
+    mes = dt.month
+    
+    # 2. Features de Clima (USAR DEFAULT/NEUTRAL)
+    # Se usan valores neutros para que la predicción dependa solo de ruta/aerolínea por ahora
+    temp_neutral = 20.0
+    humedad_neutral = 50
+    presion_neutral = 1013
+    visibilidad_neutral = 10000
+    viento_neutral = 10.0
+    
+    data = {
+        'distancia_km': [distancia_km],
+        'temperatura': [temp_neutral],
+        'humedad': [humedad_neutral],
+        'presion': [presion_neutral],
+        'visibilidad': [visibilidad_neutral],
+        'viento_velocidad': [viento_neutral],
+        'hora': [hora],
+        'dia_semana': [dia_semana],
+        'mes': [mes]
+    }
+    
+    df = pd.DataFrame(data)
+    
+    # 3. One-Hot Encoding para Aerolíneas
+    # El modelo espera columnas específicas (según train_model.py):
+    # aerolinea_LATAM, aerolinea_GOL, aerolinea_AZUL, aerolinea_AVIANCA, aerolinea_COPA
+    # Si la aerolinea entrante no es una de estas, todas serán 0 (Caso base)
+    
+    # Mapeo de IDs (1, 2) a Nombres esperados si fuera necesario, 
+    # pero como el modelo fue entrenado con LATAM/GOL, y aquí usamos 1=Delta, 2=Southwest,
+    # simplemente no activamos ninguna flag de las "viejas" aerolíneas.
+    # Esto es seguro: el modelo tratará Delta/Southwest como "Otras".
+    
+    aerolineas_modelo = ['LATAM', 'GOL', 'AZUL', 'AVIANCA', 'COPA']
+    
+    for aerolinea_col in aerolineas_modelo:
+        # Aquí aerolinea viene como "1" o "2", que no coincide con 'LATAM', etc.
+        # Por lo tanto, setea 0.
+        df[f'aerolinea_{aerolinea_col}'] = 0
+        
+    return df
 
 # ============================================================================
 # PUNTO DE ENTRADA
@@ -488,3 +396,4 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
+

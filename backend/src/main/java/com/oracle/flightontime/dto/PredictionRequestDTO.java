@@ -51,4 +51,17 @@ public class PredictionRequestDTO {
      */
     @JsonProperty("fecha_partida")
     private String fechaPartida;
+
+    // Getters and Setters manuales (por si acaso Lombok falla)
+    public String getAerolinea() { return aerolinea; }
+    public void setAerolinea(String aerolinea) { this.aerolinea = aerolinea; }
+
+    public String getOrigen() { return origen; }
+    public void setOrigen(String origen) { this.origen = origen; }
+
+    public String getDestino() { return destino; }
+    public void setDestino(String destino) { this.destino = destino; }
+
+    public String getFechaPartida() { return fechaPartida; }
+    public void setFechaPartida(String fechaPartida) { this.fechaPartida = fechaPartida; }
 }

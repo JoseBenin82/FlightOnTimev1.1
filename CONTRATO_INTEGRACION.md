@@ -8,7 +8,7 @@
 
 **Versión del Contrato**: 1.0.0  
 **Fecha**: 2025-12-25  
-**Propietario**: Oracle Enterprise Partner  
+**Propietario**: Equipo3 FlightOnTime
 **Protocolo**: HTTP/HTTPS  
 **Formato**: JSON  
 **Encoding**: UTF-8  

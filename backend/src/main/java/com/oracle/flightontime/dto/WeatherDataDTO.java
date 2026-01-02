@@ -39,4 +39,22 @@ public class WeatherDataDTO {
 
     @JsonProperty("descripcion")
     private String descripcion;
+
+    // Getters
+    public Double getTemperatura() { return temperatura; }
+    public Integer getHumedad() { return humedad; }
+    public Integer getPresion() { return presion; }
+    public Integer getVisibilidad() { return visibilidad; }
+    public Double getVientoVelocidad() { return vientoVelocidad; }
+    public String getCondicion() { return condicion; }
+    public String getDescripcion() { return descripcion; }
+
+    // Setters
+    public void setTemperatura(Double temperatura) { this.temperatura = temperatura; }
+    public void setHumedad(Integer humedad) { this.humedad = humedad; }
+    public void setPresion(Integer presion) { this.presion = presion; }
+    public void setVisibilidad(Integer visibilidad) { this.visibilidad = visibilidad; }
+    public void setVientoVelocidad(Double vientoVelocidad) { this.vientoVelocidad = vientoVelocidad; }
+    public void setCondicion(String condicion) { this.condicion = condicion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
 }
