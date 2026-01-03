@@ -9,7 +9,7 @@
 
 **FlightOnTime** es un sistema empresarial de misión crítica que predice la puntualidad de vuelos combinando:
 
-- **Machine Learning** con modelo pre-entrenado
+- **Machine Learning** con modelo **Random Forest (.pkl)** pre-entrenado
 - **Datos meteorológicos en tiempo real** 
 - **Cálculo automático de distancias geodésicas**
 - **Arquitectura de microservicios escalable**
@@ -47,6 +47,7 @@
 - Python 3.11
 - FastAPI
 - scikit-learn
+- Modelo serializado: `random_forest_v1.pkl`
 - OpenWeatherMap API
 
 **Frontend (Interfaz de Usuario)**
@@ -67,13 +68,32 @@
 ✅ **Observabilidad**: Health checks y logging detallado  
 ✅ **Mantenibilidad**: Código documentado en español  
 
+
+### Flujo de Integración End-to-End
+
+1. **Frontend (Browser)**: 
+   - Captura aerolínea, ruta y fecha.
+   - Envía solicitud asíncrona al Backend.
+2. **Backend (Spring Boot)**: 
+   - Valida reglas de negocio.
+   - Calcula distancia automática (Haversine).
+   - Actúa como cliente HTTP solicitando predicción al ML Service.
+3. **ML Service (Python/FastAPI)**:
+   - Mantiene el modelo `random_forest_v1.pkl` cargado en memoria.
+   - Enriquece datos con clima en tiempo real.
+   - Ejecuta inferencia sobre el objeto pickle deserializado.
+4. **Retorno**: 
+   - JSON unificado con predicción (0/1), probabilidad y metadatos cruza de vuelta al Frontend.
+
 ---
 
 ## 🚀 CARACTERÍSTICAS PRINCIPALES
 
 ### 1. Predicción Inteligente
 
-- **Modelo ML**: Entrenado con datos históricos de vuelos
+### 1. Predicción Inteligente
+
+- **Modelo ML**: Random Forest Serializado (`.pkl`), entrenado con histórico de vuelos
 - **Features Enriquecidas**: 
   - Distancia del vuelo (calculada automáticamente)
   - Clima en tiempo real (temperatura, viento, visibilidad)
@@ -222,7 +242,7 @@ docker-compose up --build
 
 ### Backup y Recuperación
 
-- **Modelo ML**: Versionado en Git LFS
+- **Modelo ML**: Archivo `random_forest_v1.pkl` versionado en repositorio
 - **Configuración**: Infrastructure as Code
 - **Datos**: Backup diario (cuando se implemente DB)
 - **RTO**: < 1 hora

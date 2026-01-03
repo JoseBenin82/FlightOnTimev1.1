@@ -16,8 +16,6 @@ services:
       - "8001:8001"
     environment:
       - PYTHONUNBUFFERED=1
-    volumes:
-      - ./ml-service:/app
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')" ]
       interval: 30s
@@ -84,10 +82,3 @@ networks:
   flightontime-network:
     driver: bridge
     name: flightontime-network
-
-# ============================================================================
-# VOLÚMENES (Opcional para persistencia)
-# ============================================================================
-volumes:
-  ml-data:
-    name: flightontime-ml-data

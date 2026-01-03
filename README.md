@@ -159,10 +159,10 @@ Realiza una predicción de puntualidad de vuelo.
 **Body (JSON):**
 ```json
 {
-  "aerolinea": "LATAM",
-  "origen": "GRU",
-  "destino": "JFK",
-  "fecha_partida": "2025-12-25T14:30:00"
+  "aerolinea": "1",           // REQUERIDO: "1" (Delta) o "2" (Southwest)
+  "origen": "ATL",            // REQUERIDO: Código IATA (3 letras mayúsculas)
+  "destino": "LAX",           // REQUERIDO: Código IATA (3 letras mayúsculas)
+  "fecha_partida": "2026-01-15T14:30:00"   // OPCIONAL: ISO-8601
 }
 ```
 
@@ -183,12 +183,12 @@ Realiza una predicción de puntualidad de vuelo.
     "descripcion": "cielo claro"
   },
   "metadata": {
-    "aerolinea": "LATAM",
-    "ruta": "GRU → JFK",
-    "origen_nombre": "São Paulo-Guarulhos",
-    "destino_nombre": "New York-JFK",
-    "fecha_partida": "2025-12-25T14:30:00",
-    "timestamp_prediccion": "2025-12-25T10:56:19"
+    "aerolinea": "1",
+    "ruta": "ATL → LAX",
+    "origen_nombre": "Hartsfield-Jackson Atlanta International Airport",
+    "destino_nombre": "Los Angeles International Airport",
+    "fecha_partida": "2026-01-15T14:30:00",
+    "timestamp_prediccion": "2026-01-02T17:56:19"
   },
   "modo_mock": false
 }
@@ -250,29 +250,29 @@ Health check del servicio ML.
 
 ## 🧪 Ejemplos de Prueba
 
-### Ejemplo 1: Vuelo Doméstico Brasil (Modo Real)
+### Ejemplo 1: Vuelo Delta - Atlanta a Los Angeles (Modo Real)
 
 ```bash
 curl -X POST http://localhost:8080/api/predict \
   -H "Content-Type: application/json" \
   -d '{
-    "aerolinea": "GOL",
-    "origen": "GRU",
-    "destino": "GIG",
-    "fecha_partida": "2025-12-26T08:00:00"
+    "aerolinea": "1",
+    "origen": "ATL",
+    "destino": "LAX",
+    "fecha_partida": "2026-01-15T08:00:00"
   }'
 ```
 
-### Ejemplo 2: Vuelo Internacional (Modo Mock)
+### Ejemplo 2: Vuelo Southwest - Chicago a Miami (Modo Mock)
 
 ```bash
 curl -X POST "http://localhost:8080/api/predict?mock=true" \
   -H "Content-Type: application/json" \
   -d '{
-    "aerolinea": "LATAM",
-    "origen": "GRU",
-    "destino": "JFK",
-    "fecha_partida": "2025-12-27T14:30:00"
+    "aerolinea": "2",
+    "origen": "ORD",
+    "destino": "MIA",
+    "fecha_partida": "2026-01-20T14:30:00"
   }'
 ```
 
@@ -394,16 +394,21 @@ OPENWEATHER_API_KEY = "d4ce4d4589c7a7ac4343085c00c39f9b"
 
 ### Aeropuertos Disponibles
 
-El sistema incluye 40+ aeropuertos internacionales:
+El sistema soporta **dos aerolíneas** con sus respectivos aeropuertos:
 
-**Brasil**: GRU, GIG, BSB, CGH, SSA, CNF, REC, FOR, POA, CWB  
-**Estados Unidos**: JFK, LAX, ORD, MIA, ATL, DFW, SFO, IAH, LAS, BOS  
-**México**: MEX, CUN, GDL, MTY, TIJ  
-**Europa**: LHR, CDG, FRA, MAD, BCN, AMS, FCO, LIS  
-**América del Sur**: EZE, BOG, LIM, SCL  
-**Asia**: NRT, HND, PEK, PVG, HKG, SIN, ICN, DXB  
+#### **Delta Air Lines (Código: "1")** - 172 aeropuertos
+Principales hubs: ATL, DTW, MSP, SLC, SEA, JFK, LAX, BOS, SFO
 
-Para agregar más aeropuertos, editar `ml-service/airport_coords.py`.
+#### **Southwest Airlines (Código: "2")** - 119 aeropuertos  
+Principales hubs: DAL, HOU, PHX, LAS, BWI, MDW, DEN, OAK
+
+**Aeropuertos comunes** (disponibles en ambas aerolíneas):
+ABQ, ALB, ATL, AUS, BDL, BHM, BNA, BOI, BOS, BUF, BUR, BWI, BZN, CHS, CLE, CLT, CMH, COS, CVG, DAL, DCA, DEN, DSM, DTW, ECP, ELP, FAT, FLL, GEG, GRR, GSP, HDN, HNL, HOU, HRL, IAD, ICT, IND, JAN, JAX, KOA, LAS, LAX, LGB, LIT, MCI, MCO, MDW, MEM, MIA, MKE, MSP, MSY, MTJ, MYR, OAK, OGG, OKC, OMA, ONT, ORD, ORF, PBI, PDX, PHL, PHX, PIT, PNS, PSP, PVD, PWM, RDU, RIC, RNO, ROC, RSW, SAN, SAT, SAV, SBA, SDF, SEA, SFO, SJC, SJU, SLC, SMF, SNA, SRQ, STL, TPA, TUL, TUS, VPS
+
+Para ver la lista completa de aeropuertos, consulte:
+- **Backend**: `AirlineConfig.java`
+- **Frontend**: `airline_data.js`
+- **ML Service**: Usa la librería `airportsdata` con miles de aeropuertos globales
 
 ---
 

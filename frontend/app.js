@@ -6,7 +6,26 @@
 
 // Configuración de la API
 const API_CONFIG = {
-    baseUrl: 'http://localhost:8080/api',
+    // En desarrollo local (localhost, 127.0.0.1, con puertos como 5500, 3000, etc.)
+    // se conecta directamente al backend en el puerto 8080
+    // En producción con Docker, Nginx redirige /api al backend
+    baseUrl: (function () {
+        const hostname = window.location.hostname;
+        const port = window.location.port;
+
+        // Detectar si estamos en desarrollo local
+        const isLocalDev = hostname === 'localhost' ||
+            hostname === '127.0.0.1' ||
+            hostname.endsWith('.local');
+
+        // Si es desarrollo local Y no es el puerto 80 (Docker), usar URL directa del backend
+        if (isLocalDev && port !== '80' && port !== '') {
+            return 'http://localhost:8080/api';
+        }
+
+        // En producción (Docker con Nginx), usar ruta relativa
+        return '/api';
+    })(),
     endpoints: {
         predict: '/predict',
         health: '/health'

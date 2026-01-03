@@ -73,6 +73,17 @@ OPENWEATHER_API_KEY = "d4ce4d4589c7a7ac4343085c00c39f9b"
 OPENWEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
 
 # ============================================================================
+# CONFIGURACIÓN DE AEROLÍNEAS
+# ============================================================================
+# El modelo random_forest_v1.pkl fue entrenado con:
+# - Código "1" = Delta Air Lines (DL)
+# - Código "2" = Southwest Airlines (WN)
+# 
+# Estos códigos se usan directamente en las predicciones.
+# NO se requiere mapeo adicional.
+# ============================================================================
+
+# ============================================================================
 # MODELOS DE DATOS (DTOs)
 # ============================================================================
 
@@ -81,18 +92,18 @@ class PredictionRequest(BaseModel):
     Modelo de entrada para solicitud de predicción.
     El usuario NO envía la distancia, se calcula automáticamente.
     """
-    aerolinea: str = Field(..., description="Código de aerolínea (ej: LATAM, GOL, AZUL)")
-    origen: str = Field(..., description="Código IATA del aeropuerto de origen (ej: GRU, JFK)")
-    destino: str = Field(..., description="Código IATA del aeropuerto de destino (ej: GIG, MEX)")
+    aerolinea: str = Field(..., description="Código de aerolínea: 1 (Delta) o 2 (Southwest)")
+    origen: str = Field(..., description="Código IATA del aeropuerto de origen (ej: ATL, LAX, JFK)")
+    destino: str = Field(..., description="Código IATA del aeropuerto de destino (ej: ORD, MIA, SEA)")
     fecha_partida: Optional[str] = Field(None, description="Fecha de partida en formato ISO-8601")
     
     class Config:
         json_schema_extra = {
             "example": {
-                "aerolinea": "LATAM",
-                "origen": "GRU",
-                "destino": "JFK",
-                "fecha_partida": "2025-12-25T14:30:00"
+                "aerolinea": "1",
+                "origen": "ATL",
+                "destino": "LAX",
+                "fecha_partida": "2026-01-15T14:30:00"
             }
         }
 
@@ -201,7 +212,8 @@ async def predict_internal(request: PredictionRequest):
     """
     Endpoint principal de predicción con enriquecimiento meteorológico.
     """
-    logger.info(f"🔍 Iniciando predicción para: {request.aerolinea} {request.origen} → {request.destino}")
+    logger.info(f"🔍 Iniciando predicción para: Aerolínea={request.aerolinea}, {request.origen} → {request.destino}")
+
     
     try:
         # ====================================================================
@@ -325,6 +337,11 @@ async def predict_internal(request: PredictionRequest):
 def preparar_features_modelo(aerolinea: str, distancia_km: float, clima: WeatherData, fecha_partida_str: str = None) -> pd.DataFrame:
     """
     Prepara el DataFrame de features para el modelo Random Forest.
+    
+    El modelo fue entrenado con:
+    - aerolinea_1 = Delta Air Lines
+    - aerolinea_2 = Southwest Airlines
+    
     IMPORTANTE: Según requerimientos, NO usamos el clima real para la predicción todavía,
     usamos valores promedio/default para neutralizar el factor climático en la inferencia
     mientras se recargan datos reales para visualización.
@@ -366,21 +383,19 @@ def preparar_features_modelo(aerolinea: str, distancia_km: float, clima: Weather
     df = pd.DataFrame(data)
     
     # 3. One-Hot Encoding para Aerolíneas
-    # El modelo espera columnas específicas (según train_model.py):
-    # aerolinea_LATAM, aerolinea_GOL, aerolinea_AZUL, aerolinea_AVIANCA, aerolinea_COPA
-    # Si la aerolinea entrante no es una de estas, todas serán 0 (Caso base)
+    # El modelo espera columnas específicas (según entrenamiento):
+    # aerolinea_1 (Delta), aerolinea_2 (Southwest)
     
-    # Mapeo de IDs (1, 2) a Nombres esperados si fuera necesario, 
-    # pero como el modelo fue entrenado con LATAM/GOL, y aquí usamos 1=Delta, 2=Southwest,
-    # simplemente no activamos ninguna flag de las "viejas" aerolíneas.
-    # Esto es seguro: el modelo tratará Delta/Southwest como "Otras".
+    aerolineas_modelo = ['1', '2']  # Delta y Southwest
     
-    aerolineas_modelo = ['LATAM', 'GOL', 'AZUL', 'AVIANCA', 'COPA']
+    logger.info(f"🔄 Usando aerolínea: '{aerolinea}' para predicción")
     
     for aerolinea_col in aerolineas_modelo:
-        # Aquí aerolinea viene como "1" o "2", que no coincide con 'LATAM', etc.
-        # Por lo tanto, setea 0.
-        df[f'aerolinea_{aerolinea_col}'] = 0
+        if aerolinea == aerolinea_col:
+            df[f'aerolinea_{aerolinea_col}'] = 1
+            logger.debug(f"   ✅ Activada feature: aerolinea_{aerolinea_col}=1")
+        else:
+            df[f'aerolinea_{aerolinea_col}'] = 0
         
     return df
 

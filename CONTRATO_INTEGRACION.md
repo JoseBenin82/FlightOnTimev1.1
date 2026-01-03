@@ -6,8 +6,8 @@
 
 ## 1. INFORMACIÓN GENERAL
 
-**Versión del Contrato**: 1.0.0  
-**Fecha**: 2025-12-25  
+**Versión del Contrato**: 1.1.0  
+**Fecha**: 2026-01-02  
 **Propietario**: Equipo3 FlightOnTime
 **Protocolo**: HTTP/HTTPS  
 **Formato**: JSON  
@@ -68,13 +68,24 @@ Content-Type: application/json
     "condicion": "string",             // Ej: "Clear", "Clouds", "Rain"
     "descripcion": "string"            // Descripción en español
   },
+  "clima_destino": {                   // Clima del aeropuerto de destino
+    "temperatura": number,             // Grados Celsius
+    "humedad": integer,                // Porcentaje (0-100)
+    "presion": integer,                // hPa
+    "visibilidad": integer,            // Metros
+    "viento_velocidad": number,        // m/s
+    "condicion": "string",             // Ej: "Clear", "Clouds", "Rain"
+    "descripcion": "string"            // Descripción en español
+  },
   "metadata": {
     "aerolinea": "string",
     "ruta": "string",                  // Formato: "XXX → YYY"
     "origen_nombre": "string",
     "destino_nombre": "string",
     "fecha_partida": "string",         // ISO-8601
-    "timestamp_prediccion": "string"   // ISO-8601
+    "timestamp_prediccion": "string",  // ISO-8601
+    "tiempo_respuesta_ms": integer,    // Tiempo de respuesta del ML Service
+    "tiempo_cliente_ms": integer       // Tiempo total desde el cliente
   },
   "modo_mock": boolean                 // true si se usó modo mock
 }
@@ -178,6 +189,15 @@ Content-Type: application/json
     "condicion": "string",
     "descripcion": "string"
   },
+  "clima_destino": {                   // Clima del aeropuerto de destino
+    "temperatura": number,
+    "humedad": integer,
+    "presion": integer,
+    "visibilidad": integer,
+    "viento_velocidad": number,
+    "condicion": "string",
+    "descripcion": "string"
+  },
   "metadata": {
     "aerolinea": "string",
     "ruta": "string",
@@ -244,8 +264,12 @@ Content-Type: application/json
 
 ### 3.2 Códigos de Aerolínea
 
-**Formato**: String (sin restricciones estrictas)  
-**Ejemplos**: `LATAM`, `GOL`, `AZUL`, `AVIANCA`, `COPA`, `AMERICAN`, `UNITED`, `DELTA`
+**Formato**: String numérico ("1" o "2")  
+**Aerolíneas Soportadas**:
+- **"1"**: Delta Air Lines (DL)
+- **"2"**: Southwest Airlines (WN)
+
+⚠️ **IMPORTANTE**: El modelo ML solo fue entrenado con estas dos aerolíneas. No se aceptan otros códigos.
 
 ### 3.3 Fecha/Hora (ISO-8601)
 
@@ -344,10 +368,10 @@ Content-Type: application/json
 
 ```javascript
 const requestData = {
-  aerolinea: "LATAM",
-  origen: "GRU",
-  destino: "JFK",
-  fecha_partida: "2025-12-25T14:30:00"
+  aerolinea: "1",  // Delta Air Lines
+  origen: "ATL",
+  destino: "LAX",
+  fecha_partida: "2026-01-15T14:30:00"
 };
 
 fetch('http://localhost:8080/api/predict', {
@@ -369,10 +393,10 @@ import requests
 
 url = "http://localhost:8080/api/predict"
 payload = {
-    "aerolinea": "GOL",
-    "origen": "GRU",
-    "destino": "GIG",
-    "fecha_partida": "2025-12-26T08:00:00"
+    "aerolinea": "2",  # Southwest Airlines
+    "origen": "ORD",
+    "destino": "MIA",
+    "fecha_partida": "2026-01-20T08:00:00"
 }
 
 response = requests.post(url, json=payload)
@@ -385,10 +409,10 @@ print(response.json())
 curl -X POST http://localhost:8080/api/predict \
   -H "Content-Type: application/json" \
   -d '{
-    "aerolinea": "AZUL",
-    "origen": "BSB",
-    "destino": "CNF",
-    "fecha_partida": "2025-12-27T10:00:00"
+    "aerolinea": "1",
+    "origen": "JFK",
+    "destino": "SFO",
+    "fecha_partida": "2026-02-01T10:00:00"
   }'
 ```
 
@@ -398,10 +422,10 @@ curl -X POST http://localhost:8080/api/predict \
 WebClient webClient = WebClient.create("http://localhost:8080");
 
 PredictionRequestDTO request = PredictionRequestDTO.builder()
-    .aerolinea("AVIANCA")
-    .origen("BOG")
-    .destino("MEX")
-    .fechaPartida("2025-12-28T12:00:00")
+    .aerolinea("2")  // Southwest Airlines
+    .origen("LAS")
+    .destino("PHX")
+    .fechaPartida("2026-02-05T12:00:00")
     .build();
 
 PredictionResponseDTO response = webClient.post()
@@ -424,7 +448,23 @@ System.out.println(response);
 - **MINOR**: Nuevas funcionalidades compatibles
 - **PATCH**: Correcciones de bugs
 
-**Versión actual**: 1.0.0
+**Versión actual**: 1.1.0
+
+**Historial de cambios**:
+
+### v1.1.0 (2026-01-02)
+- ✨ Agregado campo `clima_destino` en respuestas
+- ✨ Agregados campos `tiempo_respuesta_ms` y `tiempo_cliente_ms` en metadata
+- 📚 Documentada sección de Internacionalización y Unidades
+- 📚 Documentadas conversiones automáticas de unidades
+- 🔄 Cambio MINOR (nuevas funcionalidades compatibles)
+
+### v1.0.0 (2025-12-25)
+- 🎉 Versión inicial del contrato
+- ✅ Definición de endpoints Backend y ML Service
+- ✅ Especificación de tipos de datos
+- ✅ Reglas de negocio y validaciones
+- ✅ Ejemplos de integración
 
 **Cambios futuros**:
 - Si se agrega un campo opcional → MINOR
@@ -452,9 +492,79 @@ System.out.println(response);
 
 ---
 
-## 9. PERFORMANCE
+## 9. INTERNACIONALIZACIÓN Y UNIDADES
 
-### 9.1 Tiempos de Respuesta Esperados
+### 9.1 Idiomas Soportados
+
+El frontend soporta dos idiomas:
+
+- **Español (es)**: Idioma por defecto
+- **Inglés (en)**: Idioma alternativo
+
+**Cambio de idioma**: El usuario puede cambiar el idioma desde el panel de configuración en el frontend.
+
+### 9.2 Sistema de Unidades
+
+El sistema soporta dos conjuntos de unidades:
+
+#### Sistema Internacional (SI) - Por defecto con Español
+
+| Magnitud | Unidad | Símbolo |
+|----------|--------|---------|
+| Distancia | Kilómetros | km |
+| Temperatura | Celsius | °C |
+| Velocidad del viento | Metros por segundo | m/s |
+| Visibilidad | Metros | m |
+
+#### Sistema Imperial - Por defecto con Inglés
+
+| Magnitud | Unidad | Símbolo |
+|----------|--------|---------|
+| Distancia | Millas | mi |
+| Temperatura | Fahrenheit | °F |
+| Velocidad del viento | Millas por hora | mph |
+| Visibilidad | Pies | ft |
+
+### 9.3 Conversiones Automáticas
+
+**Fórmulas de conversión**:
+
+```javascript
+// Distancia
+km_to_miles = km * 0.621371
+
+// Temperatura
+celsius_to_fahrenheit = (celsius * 9/5) + 32
+
+// Velocidad del viento
+ms_to_mph = ms * 2.23694
+
+// Visibilidad
+meters_to_feet = meters * 3.28084
+```
+
+### 9.4 Comportamiento del Frontend
+
+- Al cambiar a **Español**, automáticamente cambia a unidades **SI**
+- Al cambiar a **Inglés**, automáticamente cambia a unidades **Imperial**
+- El usuario puede personalizar las unidades independientemente del idioma
+
+### 9.5 Formato de Respuesta del Backend
+
+⚠️ **IMPORTANTE**: El backend y ML service **SIEMPRE** retornan valores en **Sistema Internacional (SI)**:
+
+- Distancia en **kilómetros**
+- Temperatura en **Celsius**
+- Velocidad del viento en **m/s**
+- Visibilidad en **metros**
+
+La conversión a unidades imperiales se realiza **únicamente en el frontend** para visualización.
+
+---
+
+## 10. PERFORMANCE
+
+### 10.1 Tiempos de Respuesta Esperados
 
 | Endpoint           | Tiempo Promedio | Timeout |
 |--------------------|-----------------|---------|
@@ -463,7 +573,7 @@ System.out.println(response);
 | GET /health        | 10-50ms         | 3s      |
 | GET /airports      | 10-30ms         | 3s      |
 
-### 9.2 Límites
+### 10.2 Límites
 
 - **Tamaño máximo de request**: 1 MB
 - **Tamaño máximo de response**: 5 MB
@@ -471,16 +581,16 @@ System.out.println(response);
 
 ---
 
-## 10. SOPORTE Y CONTACTO
+## 11. SOPORTE Y CONTACTO
 
 **Documentación**: http://localhost:8080/api/docs  
 **Health Checks**: 
 - Backend: http://localhost:8080/api/health
 - ML Service: http://localhost:8001/health
 
-**Equipo de Desarrollo**: Oracle Enterprise Partner  
-**Versión del Documento**: 1.0.0  
-**Última Actualización**: 2025-12-25
+**Equipo de Desarrollo**: Oracle ONE  
+**Versión del Documento**: 1.1.0  
+**Última Actualización**: 2026-01-02
 
 ---
 
